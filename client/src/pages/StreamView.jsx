@@ -3,12 +3,12 @@ import { socket, deviceId } from '../utils/socket';
 
 export default function StreamView() {
   const [isVerified, setIsVerified] = useState(false);
-  
-  // NEW: The Queue System
   const [queue, setQueue] = useState([]);
   const [currentReveal, setCurrentReveal] = useState(null);
+  const [clientIp, setClientIp] = useState('Detecting network IP...'); // New IP state
 
   useEffect(() => {
+    // We no longer need the URL parameter. The server handles parking.
     socket.emit('REQUEST_STREAM_ACCESS', { 
       userAgent: navigator.userAgent, 
       deviceId: deviceId 
@@ -16,15 +16,10 @@ export default function StreamView() {
 
     const handleRoleAssigned = (role) => {
       if (role === 'STREAM') setIsVerified(true);
-      if (role === 'UNASSIGNED') setIsVerified(false);
+      if (role === 'PENDING_STREAM' || role === 'UNASSIGNED') setIsVerified(false);
     };
 
-    // 1. When a card is revealed, add it to the BACK of the line
-    const handleReveal = (data) => {
-      setQueue((prevQueue) => [...prevQueue, data]);
-    };
-
-    // 2. If the Judge resets the draft, instantly clear the screen and the queue
+    const handleReveal = (data) => setQueue((prevQueue) => [...prevQueue, data]);
     const handleStateUpdate = (state) => {
       if (state.status === 'PENDING') {
         setQueue([]);
@@ -35,15 +30,17 @@ export default function StreamView() {
     socket.on('ROLE_ASSIGNED', handleRoleAssigned);
     socket.on('CARD_REVEALED', handleReveal);
     socket.on('STATE_UPDATE', handleStateUpdate);
+    socket.on('STREAM_IP', (ip) => setClientIp(ip)); // Listen for the IP
     
     return () => {
       socket.off('ROLE_ASSIGNED', handleRoleAssigned);
       socket.off('CARD_REVEALED', handleReveal);
       socket.off('STATE_UPDATE', handleStateUpdate);
+      socket.off('STREAM_IP');
     };
   }, []);
 
-  // 3. THE QUEUE PROCESSOR: Pulls the next card only when the screen is empty
+  // Queue logic remains exactly the same...
   useEffect(() => {
     if (!currentReveal && queue.length > 0) {
       setCurrentReveal(queue[0]);
@@ -51,26 +48,26 @@ export default function StreamView() {
     }
   }, [currentReveal, queue]);
 
-  // 4. THE TIMER: Clears the screen exactly 6 seconds after a card appears
   useEffect(() => {
     if (currentReveal) {
-      const hideTimer = setTimeout(() => {
-        setCurrentReveal(null);
-      }, 6000);
-      
-      // If the component unmounts, clear the timer. 
-      // Because 'queue' is NOT in the dependency array below, 
-      // adding new cards won't accidentally cancel this timer anymore!
+      const hideTimer = setTimeout(() => setCurrentReveal(null), 6000);
       return () => clearTimeout(hideTimer);
     }
   }, [currentReveal]);
 
-  // --- VIEW 1: THE WAITING SCREEN ---
+  // --- VIEW 1: THE WAITING SCREEN (Now displays IP) ---
   if (!isVerified) {
     return (
       <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111827', color: 'white', fontFamily: 'sans-serif', textAlign: 'center' }}>
         <h2 style={{ color: '#3b82f6', marginBottom: '10px' }}>Stream Source Connected</h2>
-        <p style={{ color: '#9ca3af' }}>Waiting for Admin to verify this overlay...</p>
+        <p style={{ color: '#9ca3af', marginBottom: '20px' }}>Waiting for Admin to assign a table...</p>
+        
+        {/* The IP Display Block */}
+        <div style={{ backgroundColor: '#1f2937', padding: '15px 30px', borderRadius: '8px', border: '1px solid #374151' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px' }}>Source IP Address</p>
+          <p style={{ margin: '5px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>{clientIp}</p>
+        </div>
+        
         <p style={{ fontSize: '12px', color: '#4b5563', marginTop: '20px' }}>{navigator.userAgent}</p>
       </div>
     );

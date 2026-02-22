@@ -1,6 +1,10 @@
 import { io } from 'socket.io-client';
 
-const URL = 'http://localhost:3001';
+// DYNAMIC IP ROUTING: 
+// Instead of hardcoding localhost, we tell the tablet to look for the Node server 
+// on port 3001 of whatever IP address it used to load the website!
+const serverIp = window.location.hostname;
+const URL = `http://${serverIp}:3001`;
 
 // Check if this browser already has an ID saved. If not, create one.
 let deviceId = localStorage.getItem('mafia_device_id');

@@ -1,14 +1,5 @@
-# Node dependencies
 node_modules/
-npm-debug.log
-
-# Build output
-client/dist/
-
-# Environment variables (for when we add .env later)
+dist/
 .env
-.env.local
-
-# OS generated files
 .DS_Store
-Thumbs.db
+*.log
