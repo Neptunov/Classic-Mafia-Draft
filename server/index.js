@@ -27,15 +27,28 @@ const rooms = {};    // roomId -> { gameState: {...} }
 function getInitialGameState() {
   return {
     status: 'PENDING',
-    deck: [],
+    slots: {},         // MAP: slotIndex -> role
+    revealedSlots: [], // ARRAY: tracks which indexes have been picked
     currentTurn: 1,
-    results: {},
-    availableCards: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    results: {},       // MAP: seat -> { role, slotIndex }
     isTrayUnlocked: false,
     isDebugMode: false,
     areRolesLocked: false,
-    clientCounts: { PLAYER: 0, JUDGE: 0, STREAM: 0, ADMIN: 0, UNASSIGNED: 0 }
+    clientCounts: { PLAYER: 0, JUDGE: 0, STREAM: 0, ADMIN: 0, UNASSIGNED: 0, PENDING_STREAM: 0 }
   };
+}
+
+function broadcastState(roomId) {
+  if (!roomId || !rooms[roomId]) return;
+  const gs = rooms[roomId].gameState;
+  const cleanState = { ...gs };
+  
+  if (!gs.isDebugMode) {
+    cleanState.slots = "{HIDDEN_FOR_TOURNAMENT_INTEGRITY}"; 
+  }
+
+  io.to(roomId).emit('STATE_UPDATE', cleanState);
+  broadcastToAdmins(); // Admins receive the same sanitized state to prevent accidental peeking
 }
 
 function shuffle(array) {
@@ -51,9 +64,25 @@ function shuffle(array) {
 // NEW: Global broadcaster for Super Admins
 function broadcastToAdmins() {
   const adminSockets = Object.values(clients).filter(c => c.role === 'ADMIN').map(c => c.id);
+  if (adminSockets.length === 0) return;
+
+  // We must build a clean copy of the entire rooms dictionary
+  const sanitizedRooms = {};
+  
+  for (const [roomId, roomData] of Object.entries(rooms)) {
+    const cleanState = { ...roomData.gameState };
+    
+    // If debug is OFF for this specific room, hide its deck
+    if (!cleanState.isDebugMode) {
+      cleanState.slots = "{HIDDEN_FOR_TOURNAMENT_INTEGRITY}";
+    }
+    
+    sanitizedRooms[roomId] = { gameState: cleanState };
+  }
+
   adminSockets.forEach(adminId => {
     io.to(adminId).emit('REGISTRY_UPDATE', Object.values(clients));
-    io.to(adminId).emit('ROOMS_UPDATE', rooms); // Send all rooms!
+    io.to(adminId).emit('ROOMS_UPDATE', sanitizedRooms); // Send the scrubbed data!
   });
 }
 
@@ -295,17 +324,18 @@ io.on('connection', (socket) => {
     const gs = rooms[roomId].gameState;
     if (!gs.areRolesLocked) return;
 
-    // Reset keeping config
-    const locked = gs.areRolesLocked;
-    const debug = gs.isDebugMode;
-    rooms[roomId].gameState = getInitialGameState();
-    rooms[roomId].gameState.areRolesLocked = locked;
-    rooms[roomId].gameState.isDebugMode = debug;
-    rooms[roomId].gameState.deck = shuffle([...INITIAL_DECK]);
-    rooms[roomId].gameState.status = 'IN_PROGRESS';
+    const shuffledRoles = shuffle([...INITIAL_DECK]);
+    const newSlots = {};
+    shuffledRoles.forEach((role, index) => { newSlots[index] = role; });
+
+    gs.status = 'IN_PROGRESS';
+    gs.slots = newSlots;
+    gs.revealedSlots = [];
+    gs.currentTurn = 1;
+    gs.results = {};
+    gs.isTrayUnlocked = false;
     
-    updateClientCounts(roomId); // carry over counts
-    io.to(roomId).emit('STATE_UPDATE', rooms[roomId].gameState);
+    broadcastState(roomId);
   });
 
   socket.on('UNLOCK_TRAY', () => {
@@ -317,47 +347,70 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('PICK_CARD', (cardIndex) => {
+  socket.on('PICK_CARD', (slotIndex) => {
     const roomId = clients[socket.id]?.roomId;
     if (!roomId) return;
     const gs = rooms[roomId].gameState;
 
     if (gs.status !== 'IN_PROGRESS' || !gs.isTrayUnlocked) return;
-    if (!gs.availableCards.includes(cardIndex)) return;
+    if (gs.revealedSlots.includes(slotIndex)) return;
 
-    const assignedRole = gs.deck.pop();
-    gs.results[gs.currentTurn] = assignedRole;
-    gs.availableCards = gs.availableCards.filter(index => index !== cardIndex);
+    const role = gs.slots[slotIndex];
+    gs.revealedSlots.push(slotIndex);
+    gs.results[gs.currentTurn] = { role, slotIndex };
     gs.isTrayUnlocked = false;
 
-    io.to(roomId).emit('CARD_REVEALED', { seat: gs.currentTurn, role: assignedRole, cardIndex });
+    // Send the secret role ONLY to the tablet that clicked it
+    socket.emit('PRIVATE_ROLE_REVEAL', { role, slotIndex });
+    
+    // Broadcast the public action to everyone else
+    io.to(roomId).emit('CARD_REVEALED', { seat: gs.currentTurn, role, cardIndex: slotIndex });
 
     if (gs.currentTurn >= 10) gs.status = 'COMPLETED';
     else gs.currentTurn++;
     
-    io.to(roomId).emit('STATE_UPDATE', gs);
+    broadcastState(roomId);
   });
 
   socket.on('FORCE_PICK', () => {
     const roomId = clients[socket.id]?.roomId;
     if ((clients[socket.id]?.role !== 'JUDGE' && clients[socket.id]?.role !== 'ADMIN') || !roomId) return;
+    
     const gs = rooms[roomId].gameState;
     if (gs.status !== 'IN_PROGRESS') return;
 
-    const randomAvailIndex = Math.floor(Math.random() * gs.availableCards.length);
-    const cardIndex = gs.availableCards[randomAvailIndex];
+    // 1. Figure out which slots haven't been picked yet
+    const allSlots = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const availableSlots = allSlots.filter(s => !gs.revealedSlots.includes(s));
+    
+    if (availableSlots.length === 0) return;
 
-    const assignedRole = gs.deck.pop();
-    gs.results[gs.currentTurn] = assignedRole;
-    gs.availableCards = gs.availableCards.filter(index => index !== cardIndex);
+    // 2. Pick a random slot from the remaining available slots
+    const randomSlotIndex = availableSlots[Math.floor(Math.random() * availableSlots.length)];
+    const role = gs.slots[randomSlotIndex];
+
+    // 3. Update the game state
+    gs.revealedSlots.push(randomSlotIndex);
+    gs.results[gs.currentTurn] = { role, slotIndex: randomSlotIndex };
     gs.isTrayUnlocked = false;
 
-    io.to(roomId).emit('CARD_REVEALED', { seat: gs.currentTurn, role: assignedRole, cardIndex });
+    // 4. SMART ANIMATION: Find the tablet (PLAYER role) and force the 3D flip!
+    const playerSockets = Object.values(clients)
+      .filter(c => c.roomId === roomId && c.role === 'PLAYER')
+      .map(c => c.id);
+    
+    playerSockets.forEach(playerId => {
+      io.to(playerId).emit('PRIVATE_ROLE_REVEAL', { role, slotIndex: randomSlotIndex });
+    });
 
+    // 5. Tell the Admin, Judge, and Stream that a card was revealed
+    io.to(roomId).emit('CARD_REVEALED', { seat: gs.currentTurn, role, cardIndex: randomSlotIndex });
+
+    // 6. Advance the turn
     if (gs.currentTurn >= 10) gs.status = 'COMPLETED';
     else gs.currentTurn++;
     
-    io.to(roomId).emit('STATE_UPDATE', gs);
+    broadcastState(roomId);
   });
 
   socket.on('RESET_DRAFT', () => {

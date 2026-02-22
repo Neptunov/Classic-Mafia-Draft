@@ -16,3 +16,10 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 ## 🔑 Security
 - **Admin Password:** mafia
 - **Role Locking:** Prevents room deletion or configuration changes once a draft is ready.
+
+## 🃏 The Draft Experience
+1. **The Tray:** Players are presented with a 2x5 grid of hidden cards.
+2. **The Pick:** A player taps a card and confirms their choice.
+3. **The Reveal:** The card physically flips on the screen to reveal their role in secret.
+4. **The Judge:** The Judge's control panel instantly updates with the player's seat, card number, and color-coded role.
+5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.

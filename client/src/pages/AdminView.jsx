@@ -54,6 +54,9 @@ export default function AdminView() {
   const activeGameState = allRooms[activeTab]?.gameState;
   const isDraftActive = activeGameState?.status === 'IN_PROGRESS';
 
+  // MASTER LOCK: If the room is not in 'PENDING', the tournament has started or finished.
+  const isGameLocked = activeGameState && activeGameState.status !== 'PENDING';
+
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif', color: '#111827' }}>
       
@@ -155,28 +158,29 @@ export default function AdminView() {
       ) : activeTab && activeGameState ? (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ margin: 0 }}>Table: {activeTab}</h3>
+            <h3 style={{ margin: 0 }}>Table: {activeTab} ({activeGameState.status})</h3>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button 
-                onClick={toggleRoleLock} disabled={isDraftActive}
-                style={{ padding: '8px 16px', backgroundColor: activeGameState.areRolesLocked ? '#059669' : '#d97706', color: 'white', border: 'none', borderRadius: '6px', cursor: isDraftActive ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: isDraftActive ? 0.5 : 1 }}
+                onClick={toggleRoleLock} disabled={isGameLocked}
+                style={{ padding: '8px 16px', backgroundColor: activeGameState.areRolesLocked ? '#059669' : '#d97706', color: 'white', border: 'none', borderRadius: '6px', cursor: isGameLocked ? 'not-allowed' : 'pointer', opacity: isGameLocked ? 0.5 : 1 }}
               >
                 {activeGameState.areRolesLocked ? '🔒 Roles Locked' : '🔓 Lock Roles'}
               </button>
               <button 
-                onClick={toggleDebug} disabled={isDraftActive}
-                style={{ padding: '8px 16px', backgroundColor: activeGameState.isDebugMode ? '#dc2626' : '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: isDraftActive ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: isDraftActive ? 0.5 : 1 }}
+                onClick={toggleDebug} disabled={isGameLocked}
+                style={{ padding: '8px 16px', backgroundColor: activeGameState.isDebugMode ? '#dc2626' : '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: isGameLocked ? 'not-allowed' : 'pointer', opacity: isGameLocked ? 0.5 : 1 }}
               >
-                {activeGameState.isDebugMode ? 'Disable Debug' : 'Enable Debug'}
+                {activeGameState.isDebugMode ? 'Debug ON' : 'Debug OFF'}
               </button>
-              <button 
-                onClick={handleDeleteRoom} disabled={activeGameState.areRolesLocked || isDraftActive}
-                style={{ padding: '8px 16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: (activeGameState.areRolesLocked || isDraftActive) ? 'not-allowed' : 'pointer', fontWeight: 'bold', opacity: (activeGameState.areRolesLocked || isDraftActive) ? 0.5 : 1 }}
-              >
-                Delete Table
-              </button>
+              <button onClick={handleDeleteRoom} disabled={isGameLocked} style={{ padding: '8px 16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', opacity: isGameLocked ? 0.5 : 1, cursor: isGameLocked ? 'not-allowed' : 'pointer' }}>Delete</button>
             </div>
           </div>
+
+          {activeGameState.isDebugMode && (
+             <div style={{ backgroundColor: '#dc2626', color: 'white', padding: '10px', textAlign: 'center', borderRadius: '6px', marginBottom: '15px', fontWeight: 'bold' }}>
+               ⚠️ DEBUG MODE ACTIVE: ROLE SLOTS ARE VISIBLE BELOW
+             </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px' }}>
             <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
