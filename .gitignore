@@ -1,0 +1,9 @@
+# Dependency directories
+node_modules/
+
+# Environment variables (for your secret keys later)
+.env
+
+# Build outputs
+dist/
+build/
