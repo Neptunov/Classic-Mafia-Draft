@@ -52,11 +52,24 @@ export default function PlayerView() {
       <style>{`
         #root { width: 100% !important; margin: 0 !important; padding: 0 !important; max-width: none !important; }
         body { margin: 0; padding: 0; background-color: #111827; }
-        .card-container { width: 320px; height: 480px; perspective: 1000px; }
+        
+        .responsive-grid {
+          display: grid; 
+          grid-template-columns: repeat(5, 1fr); 
+          gap: 15px; 
+          width: 100%; 
+          max-width: 1000px; 
+          margin: 0 auto;
+        }
+        @media (max-width: 768px) {
+          .responsive-grid { gap: 6px; }
+        }
+
+        .card-container { width: 320px; height: 448px; perspective: 1000px; } 
         .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; transform: ${isFlipping ? 'rotateY(180deg)' : 'rotateY(0deg)'}; }
         .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; }
-        .card-front { background: #1f2937; border: 4px solid #3b82f6; color: #3b82f6; }
-        .card-back { transform: rotateY(180deg); color: white; border: 4px solid white; background: ${revealedRole === 'Citizen' ? '#dc2626' : revealedRole === 'Mafia' || revealedRole === 'Don' ? '#000' : revealedRole === 'Sheriff' ? '#d97706' : '#6b21a8'}; }
+        .card-front { background-image: url('/roles/card-back.jpg'); background-size: cover; background-position: center; border: 4px solid #3b82f6; }
+        .card-back { transform: rotateY(180deg); color: transparent; border: 4px solid white; background-image: url('/roles/${revealedRole?.toLowerCase()}.jpg'); background-size: cover; background-position: center; }
       `}</style>
 
       {gameState.isDebugMode && (
@@ -65,20 +78,25 @@ export default function PlayerView() {
       
       <h2 style={{ marginBottom: '30px', color: '#60a5fa' }}>Table: {gameState.roomId}</h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '20px', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
+      <div className="responsive-grid">
         {[...Array(10)].map((_, i) => (
           <div 
             key={i} 
             onClick={() => handlePick(i)}
             style={{
-              height: '180px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: 'bold',
-              backgroundColor: gameState.revealedSlots.includes(i) ? '#1f2937' : (gameState.isTrayUnlocked ? '#2563eb' : '#1e293b'),
+              aspectRatio: '2.5 / 3.5',
+              borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              fontSize: '36px', fontWeight: 'bold', color: 'transparent',
+              
+              backgroundImage: gameState.revealedSlots.includes(i) ? 'none' : "url('/roles/card-back.jpg')",
+              backgroundSize: 'cover', backgroundPosition: 'center',
+              backgroundColor: gameState.revealedSlots.includes(i) ? 'transparent' : '#1e293b',
+              
               cursor: gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i) ? 'pointer' : 'default',
-              border: gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i) ? '3px solid #60a5fa' : '3px solid #334155',
+              border: gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i) ? '3px solid #60a5fa' : '3px solid transparent',
               boxShadow: (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i)) ? '0 0 20px rgba(59, 130, 246, 0.4)' : 'none',
               opacity: gameState.revealedSlots.includes(i) ? 0.2 : 1,
-              transition: 'all 0.1s ease-in-out',
-              transform: 'scale(1)'
+              transition: 'all 0.1s ease-in-out', transform: 'scale(1)'
             }}
             onMouseDown={(e) => { if (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i)) e.currentTarget.style.transform = 'scale(0.95)'; }}
             onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
@@ -86,7 +104,7 @@ export default function PlayerView() {
             onTouchStart={(e) => { if (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i)) e.currentTarget.style.transform = 'scale(0.95)'; }}
             onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            {gameState.revealedSlots.includes(i) ? '✘' : i + 1}
+            {gameState.revealedSlots.includes(i) ? <span style={{color: '#64748b'}}>✘</span> : ''}
           </div>
         ))}
       </div>
@@ -94,7 +112,7 @@ export default function PlayerView() {
       {revealedRole && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 500 }}>
           <div className="card-container"><div className="card-inner">
-            <div className="card-front">?</div><div className="card-back">{revealedRole}</div>
+            <div className="card-front">?</div><div className="card-back"></div>
           </div></div>
           <button onClick={closeReveal} disabled={!isFlipping} style={{ marginTop: '50px', padding: '20px 50px', fontSize: '22px', borderRadius: '50px', backgroundColor: isFlipping ? 'white' : '#4b5563', color: 'black', border: 'none', fontWeight: 'bold', cursor: isFlipping ? 'pointer' : 'not-allowed', transition: 'background-color 0.3s' }}>
             I MEMORIZED IT

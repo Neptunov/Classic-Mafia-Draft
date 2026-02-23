@@ -11,6 +11,7 @@ export default function StreamView() {
   const [isVerified, setIsVerified] = useState(false);
   const [clientIp, setClientIp] = useState('Detecting network IP...');
   const [gameState, setGameState] = useState(null);
+  const [layout, setLayout] = useState('center');
   
   const [queue, setQueue] = useState([]);
   const [currentReveal, setCurrentReveal] = useState(null);
@@ -41,6 +42,11 @@ export default function StreamView() {
     socket.on('STATE_UPDATE', handleStateUpdate);
     socket.on('STREAM_IP', setClientIp);
     socket.on('CLEAR_STREAM', () => setClearSignal(prev => prev + 1));
+	socket.on('UPDATE_LAYOUT', (newLayout) => {
+	  if (newLayout === 'LEFT') setLayout('flex-start');
+	  else if (newLayout === 'RIGHT') setLayout('flex-end');
+	  else setLayout('center');
+	});
     
     return () => {
       socket.off('ROLE_ASSIGNED'); socket.off('CARD_REVEALED');
@@ -112,7 +118,10 @@ export default function StreamView() {
     <div style={{ 
       width: '100vw', height: '100vh', 
       backgroundColor: 'transparent',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+      display: 'flex', flexDirection: 'column', 
+      justifyContent: 'center', 
+      alignItems: layout,       
+      padding: '0 5%', boxSizing: 'border-box',
       fontFamily: 'sans-serif', overflow: 'hidden' 
     }}>
       
@@ -127,7 +136,11 @@ export default function StreamView() {
           to { opacity: 1; transform: translateY(0) scale(1); } 
         }
 
-        .stream-card-container { width: 320px; height: 480px; perspective: 1000px; margin-bottom: 25px; animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .stream-card-container { 
+           width: 300px; height: 420px; /* 2.5x3.5 ratio */
+           perspective: 1000px; margin-bottom: 25px; 
+           animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
         .stream-card-inner {
           position: relative; width: 100%; height: 100%; text-align: center;
           transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
@@ -139,11 +152,17 @@ export default function StreamView() {
           border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: bold;
           box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         }
-        .stream-card-front { background: #1f2937; border: 6px solid #3b82f6; color: #3b82f6; }
-        .stream-card-back {
-          transform: rotateY(180deg); color: white; border: 6px solid white;
-          background: ${currentReveal?.role === 'Citizen' ? '#dc2626' : (currentReveal?.role === 'Mafia' || currentReveal?.role === 'Don') ? '#000' : currentReveal?.role === 'Sheriff' ? '#d97706' : '#6b21a8'};
-        }
+        .stream-card-front { 
+		  background-image: url('/roles/card-back.jpg'); 
+		  background-size: cover; background-position: center; 
+		  border: 6px solid #3b82f6; 
+		}
+		.stream-card-back {
+		  transform: rotateY(180deg); 
+		  background-image: url('/roles/${currentReveal?.role?.toLowerCase()}.jpg');
+		  background-size: cover; background-position: center;
+		  border: 6px solid white;
+		}
         .seat-badge {
           background-color: #fbbf24; color: black; padding: 12px 40px; border-radius: 50px;
           font-size: 28px; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.4);
@@ -155,13 +174,8 @@ export default function StreamView() {
         <>
           <div className="stream-card-container">
             <div className="stream-card-inner">
-              <div className="stream-card-front">?</div>
-              <div className="stream-card-back">
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: '18px', opacity: 0.8, marginBottom: '5px', letterSpacing: '2px' }}>ROLE</span>
-                  <span style={{ fontSize: '50px', textTransform: 'uppercase' }}>{currentReveal.role}</span>
-                </div>
-              </div>
+              <div className="stream-card-front"></div>
+              <div className="stream-card-back"></div>
             </div>
           </div>
 

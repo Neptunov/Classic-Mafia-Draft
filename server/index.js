@@ -3,7 +3,7 @@
  * @description Core backend server for the Classic Mafia Draft App.
  * Handles WebSocket routing, state synchronization, persistent storage, 
  * and secure tournament administration.
- * @version 0.1.0
+ * @version 0.1.1
  */
 
 import express from 'express';
@@ -31,10 +31,10 @@ const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 const APP_VERSION = packageData.version;
 
 let adminCredentials = null;
-let rooms = {};      
+let rooms = {};  
+let sessions = {};    
 
-const clients = {};  
-const sessions = {}; 
+const clients = {}; 
 
 /**
  * Hashes a plaintext password securely using PBKDF2.
@@ -51,7 +51,8 @@ function saveState() {
   const data = {
     version: APP_VERSION,
     admin: adminCredentials,
-    rooms: rooms
+    rooms: rooms,
+    sessions: sessions // <-- NEW: Save device memory to disk
   };
   fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2));
 }
@@ -169,7 +170,21 @@ function updateClientCounts(roomId) {
 // --- WEBSOCKET LOGIC ---
 io.on('connection', (socket) => {
   const clientIp = socket.handshake.address;
-
+  
+  if (!adminCredentials) {
+    socket.emit('SETUP_REQUIRED');
+  }
+  
+  socket.on('SETUP_ADMIN', (newPass) => {
+    if (adminCredentials) return; 
+    
+    adminCredentials = hashPassword(newPass);
+    saveState();
+    
+    io.emit('SETUP_COMPLETE');
+    console.log(`\n[SUCCESS] Master password initialized via Web UI.\n`);
+  });
+  
   socket.emit('AVAILABLE_ROOMS', Object.keys(rooms));
 
   socket.on('IDENTIFY', (deviceId) => {
@@ -307,6 +322,7 @@ io.on('connection', (socket) => {
     clients[socket.id].name = streamName;
     sessions[deviceId].role = 'PENDING_STREAM';
     sessions[deviceId].name = streamName;
+	sessions[deviceId].streamLayout = 'CENTER';
 
     io.to(socket.id).emit('ROLE_ASSIGNED', 'PENDING_STREAM');
     io.to(socket.id).emit('STREAM_IP', clientIp); 
@@ -333,6 +349,21 @@ io.on('connection', (socket) => {
 
     io.to(targetSocketId).emit('ROLE_ASSIGNED', 'STREAM');
     updateClientCounts(targetRoomId);
+    broadcastToAdmins();
+  });
+
+  socket.on('SET_STREAM_LAYOUT', ({ targetSocketId, layout }) => {
+    if (clients[socket.id]?.role !== 'ADMIN') return;
+    
+    const targetClient = clients[targetSocketId];
+    if (!targetClient) return;
+
+    targetClient.streamLayout = layout;
+    if (sessions[targetClient.deviceId]) {
+      sessions[targetClient.deviceId].streamLayout = layout;
+    }
+
+    io.to(targetSocketId).emit('UPDATE_LAYOUT', layout);
     broadcastToAdmins();
   });
 
@@ -551,6 +582,7 @@ if (fs.existsSync(STORE_FILE)) {
     if (parsed.version === APP_VERSION) {
       adminCredentials = parsed.admin;
       rooms = parsed.rooms || {};
+	  sessions = parsed.sessions || {};
       console.log(`[STORAGE] Restored previous session data (v${APP_VERSION}).`);
     } else {
       console.warn(`[WARNING] Data version mismatch. App is v${APP_VERSION}, Data is v${parsed.version || 'unknown'}.`);
@@ -566,39 +598,58 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 function startServer() {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n=== 🃏 MAFIA TOURNAMENT SERVER LIVE (v${APP_VERSION}) ===`);
-	  console.log(`1. Admin PC:   http://localhost:${PORT}`);
-	  console.log(`2. LAN Access: http://${LOCAL_IP}:${PORT}`);
-	  console.log(`=======================================\n`);
-    console.log(`Type "reset" and press Enter to wipe the server state.\n`);
+    console.log(`1. Admin PC:   http://localhost:${PORT}`);
+    console.log(`2. LAN Access: http://${LOCAL_IP}:${PORT}`);
+    console.log(`=======================================`);
+    console.log(`Type "status", "restart", "shutdown", or "reset" for QoL tools.\n`);
   });
 
   rl.on('line', (input) => {
-    if (input.trim().toLowerCase() === 'reset') {
-      rl.question('WARNING: Enter Admin Password to confirm factory reset: ', (pass) => {
-        if (verifyAdmin(pass)) {
-          fs.unlinkSync(STORE_FILE);
-          console.log(`\n[SUCCESS] Server wiped. Please restart the application (Ctrl+C then npm run dev).\n`);
-          process.exit(0);
-        } else {
-          console.log(`[ERROR] Incorrect password. Reset aborted.\n`);
+    const command = input.trim().toLowerCase();
+
+    switch (command) {
+      case 'status':
+        console.log(`\n=== 📊 SERVER STATUS ===`);
+        console.log(`Version:       v${APP_VERSION}`);
+        console.log(`Uptime:        ${Math.floor(process.uptime() / 60)} minutes`);
+        console.log(`Active Tables: ${Object.keys(rooms).length}`);
+        console.log(`Connections:   ${Object.keys(clients).length}`);
+        console.log(`Memory Usage:  ${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB`);
+        console.log(`========================\n`);
+        break;
+
+      case 'shutdown':
+        console.log('\n[SYSTEM] Saving tournament state and shutting down gracefully...');
+        saveState();
+        process.exit(0);
+        break;
+
+      case 'restart':
+        console.log('\n[SYSTEM] Saving tournament state and triggering restart...');
+        saveState();
+        process.exit(1); 
+        break;
+
+      case 'reset':
+        rl.question('WARNING: Enter Admin Password to confirm factory reset (Text will be visible): ', (pass) => {
+          if (verifyAdmin(pass)) {
+            if (fs.existsSync(STORE_FILE)) fs.unlinkSync(STORE_FILE);
+            console.log(`\n[SUCCESS] Server wiped. Please restart the application.\n`);
+            process.exit(0);
+          } else {
+            console.log(`[ERROR] Incorrect password. Reset aborted.\n`);
+          }
+        });
+        break;
+
+      default:
+        if (command !== '') {
+          console.log(`\n[?] Unknown command: "${command}"`);
+          console.log(`Available commands: status, restart, shutdown, reset\n`);
         }
-      });
+        break;
     }
   });
 }
 
-if (!adminCredentials) {
-  console.log(`\n=== FIRST TIME SETUP ===`);
-  rl.question('Create your master Admin password: ', (newPass) => {
-    if (newPass.length < 4) {
-      console.log('Password too short. Restart server and try again.');
-      process.exit(1);
-    }
-    adminCredentials = hashPassword(newPass);
-    saveState();
-    console.log(`[SUCCESS] Encrypted admin credentials saved.\n`);
-    startServer();
-  });
-} else {
-  startServer();
-}
+startServer();

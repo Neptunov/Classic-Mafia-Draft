@@ -150,6 +150,15 @@ export default function AdminView() {
                           <option value="" disabled>Select Table...</option>
                           {Object.keys(allRooms || {}).map(room => <option key={room} value={room}>{room}</option>)}
                         </select>
+						<select 
+						  value={client.streamLayout || 'CENTER'} 
+						  onChange={(e) => socket.emit('SET_STREAM_LAYOUT', { targetSocketId: client.id, layout: e.target.value })}
+						  style={{ padding: '6px', borderRadius: '4px', border: '1px solid #d1d5db' }}
+						>
+						  <option value="LEFT">Left Third</option>
+						  <option value="CENTER">Center</option>
+						  <option value="RIGHT">Right Third</option>
+						</select>
                         <button 
                           onClick={() => socket.emit('VERIFY_STREAM', { targetSocketId: client.id, targetRoomId: streamSelections[client.id] })}
                           disabled={!streamSelections[client.id]}

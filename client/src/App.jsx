@@ -15,10 +15,12 @@ import AdminView from './pages/AdminView';
 import JudgeView from './pages/JudgeView';
 import PlayerView from './pages/PlayerView';
 import StreamView from './pages/StreamView';
+import SetupView from './pages/SetupView';
 
 function AppContent() {
   const [gameState, setGameState] = useState(null);
   const [isConnected, setIsConnected] = useState(socket.connected);
+  const [isSetupRequired, setIsSetupRequired] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,6 +46,9 @@ function AppContent() {
       }
     }
 
+    socket.on('SETUP_REQUIRED', () => setIsSetupRequired(true));
+    socket.on('SETUP_COMPLETE', () => setIsSetupRequired(false));
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('STATE_UPDATE', onStateUpdate);
@@ -54,6 +59,8 @@ function AppContent() {
       socket.off('disconnect', onDisconnect);
       socket.off('STATE_UPDATE', onStateUpdate);
       socket.off('ROLE_ASSIGNED', onRoleAssigned);
+      socket.off('SETUP_REQUIRED');
+      socket.off('SETUP_COMPLETE');
     };
   }, [navigate]);
 
@@ -72,17 +79,21 @@ function AppContent() {
       )}
 
       <div style={{ padding: '20px' }}>
-        <Routes>
-          <Route path="/" element={<LobbyView />} />
-          <Route path="/login" element={<LoginView />} />
-          <Route path="/player" element={<PlayerView gameState={gameState} />} />
-          <Route path="/judge" element={<JudgeView gameState={gameState} />} />
-          <Route path="/stream" element={<StreamView />} />
-          
-          <Route element={<ProtectedRoute />}>
-            <Route path="/admin" element={<AdminView gameState={gameState} />} />
-          </Route>
-        </Routes>
+        {isSetupRequired ? (
+          <SetupView />
+        ) : (
+          <Routes>
+            <Route path="/" element={<LobbyView />} />
+            <Route path="/login" element={<LoginView />} />
+            <Route path="/player" element={<PlayerView gameState={gameState} />} />
+            <Route path="/judge" element={<JudgeView gameState={gameState} />} />
+            <Route path="/stream" element={<StreamView />} />
+            
+            <Route element={<ProtectedRoute />}>
+              <Route path="/admin" element={<AdminView gameState={gameState} />} />
+            </Route>
+          </Routes>
+        )}
       </div>
     </>
   );

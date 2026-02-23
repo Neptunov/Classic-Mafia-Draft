@@ -2,20 +2,29 @@
 
 A professional-grade, multi-table draft management system for Classic Mafia.
 
-## 🚀 LAN Setup
-1. Find your IPv4 Address (`ipconfig` in CMD).
-2. Start Backend: `cd server && npm run dev`
-3. Start Frontend: `cd client && npm run dev`
-4. Access via: `http://[YOUR_IP]:5173`
+### 🚀 Major Features
+* **Encrypted State Recovery:** Tournament data is now continuously backed up to disk. If the server crashes, simply restart it and pick up exactly where you left off.
+* **Live Password Rotation:** Admins can securely change the master tournament password directly from the web dashboard.
+* **Smart Disconnect Handling:** If a player, judge, or admin refreshes their browser, the server instantly recognizes their device and restores their exact table and role.
+* **Cinematic Stream Overlays:** Transparent OBS overlays are fully synced and feature an "Audience Protection Timer" to guarantee legibility.
+
+### 🐛 Bug Fixes
+* Fixed a race condition that caused the Admin dashboard to crash (white screen) when rapidly creating new tables.
+* Fixed an Express 5 routing error that caused the static Vite build to fail on refresh.
+* Fixed a `nodemon` development loop where saving tournament data would trigger an accidental server reboot.
+* Fixed a bug where the `CREATE_ROOM` command would silently fail if an Admin refreshed their page.
+
+### ⚙️ Installation & Deployment
+1. Clone the repository.
+2. Run `npm install` in both the `/client` and `/server` directories.
+3. Build the frontend for production: `cd client && npm run build`
+4. Start the server: `cd server && npm run start`
+5. Follow the terminal prompts to create your encrypted master password!
 
 ## 📡 Room Management
 - **Admins** create tables (e.g., "Table 1", "Finals") via the Dashboard.
 - **Players** select the table from a dropdown in the Lobby.
 - **Streams** connect via `/stream` and appear in the "Stream Overlays" tab for assignment.
-
-## 🔑 Security
-- **Admin Password:** mafia
-- **Role Locking:** Prevents room deletion or configuration changes once a draft is ready.
 
 ## 🃏 The Draft Experience
 1. **The Tray:** Players are presented with a 2x5 grid of hidden cards.
