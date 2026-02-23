@@ -25,6 +25,7 @@ export default function JudgeView() {
 
       <h2 style={{ borderBottom: '1px solid #374151', paddingBottom: '10px' }}>Judge Control Panel</h2>
 
+      {/* ACTION BUTTONS */}
       <div style={{ display: 'flex', gap: '15px', margin: '20px 0' }}>
         {gameState.status === 'PENDING' ? (
           <button 
@@ -36,17 +37,31 @@ export default function JudgeView() {
         ) : (
           <>
             <button 
-              onClick={() => socket.emit('UNLOCK_TRAY')} disabled={!isDrafting || gameState.isTrayUnlocked}
-              style={{ flex: 2, padding: '20px', fontSize: '18px', backgroundColor: (isDrafting && !gameState.isTrayUnlocked) ? '#3b82f6' : '#374151', color: 'white', border: 'none', borderRadius: '8px', cursor: (isDrafting && !gameState.isTrayUnlocked) ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}
+              onClick={() => socket.emit('UNLOCK_TRAY')} 
+              disabled={!isDrafting || gameState.isTrayUnlocked || gameState.isCardRevealed}
+              style={{ flex: 2, padding: '20px', fontSize: '18px', backgroundColor: (isDrafting && !gameState.isTrayUnlocked && !gameState.isCardRevealed) ? '#3b82f6' : '#374151', color: 'white', border: 'none', borderRadius: '8px', cursor: (isDrafting && !gameState.isTrayUnlocked && !gameState.isCardRevealed) ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}
             >
-              {gameState.isTrayUnlocked ? 'TRAY IS UNLOCKED' : `ALLOW PICK (Seat ${gameState.currentTurn})`}
+              {gameState.isCardRevealed ? 'WAITING FOR PLAYER TO MEMORIZE...' : (gameState.isTrayUnlocked ? 'TRAY IS UNLOCKED' : `ALLOW PICK (Seat ${gameState.currentTurn})`)}
             </button>
-            <button 
-              onClick={() => { if(window.confirm("Force a random pick?")) socket.emit('FORCE_PICK') }} disabled={!isDrafting}
-              style={{ flex: 1, padding: '20px', backgroundColor: isDrafting ? '#d97706' : '#374151', color: 'white', border: 'none', borderRadius: '8px', cursor: isDrafting ? 'pointer' : 'not-allowed' }}
-            >
-              FORCE PICK
-            </button>
+            
+            {/* DYNAMIC TOGGLE: Close Card vs Force Pick */}
+            {gameState.isCardRevealed ? (
+              <button 
+                onClick={() => socket.emit('MEMORIZED_ROLE')}
+                style={{ flex: 1, padding: '20px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                CLOSE CARD
+              </button>
+            ) : (
+              <button 
+                onClick={() => { if(window.confirm("Force a random pick?")) socket.emit('FORCE_PICK') }} 
+                // FIXED: Now available at any point during the draft!
+                disabled={!isDrafting}
+                style={{ flex: 1, padding: '20px', backgroundColor: isDrafting ? '#d97706' : '#374151', color: 'white', border: 'none', borderRadius: '8px', cursor: isDrafting ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}
+              >
+                FORCE PICK
+              </button>
+            )}
           </>
         )}
       </div>

@@ -27,11 +27,12 @@ const rooms = {};    // roomId -> { gameState: {...} }
 function getInitialGameState() {
   return {
     status: 'PENDING',
-    slots: {},         // MAP: slotIndex -> role
-    revealedSlots: [], // ARRAY: tracks which indexes have been picked
+    slots: {}, 
+    revealedSlots: [], 
     currentTurn: 1,
-    results: {},       // MAP: seat -> { role, slotIndex }
+    results: {}, 
     isTrayUnlocked: false,
+    isCardRevealed: false, // <-- NEW STATE FLAG
     isDebugMode: false,
     areRolesLocked: false,
     clientCounts: { PLAYER: 0, JUDGE: 0, STREAM: 0, ADMIN: 0, UNASSIGNED: 0, PENDING_STREAM: 0 }
@@ -334,6 +335,7 @@ io.on('connection', (socket) => {
     gs.currentTurn = 1;
     gs.results = {};
     gs.isTrayUnlocked = false;
+	gs.isCardRevealed = false;
     
     broadcastState(roomId);
   });
@@ -341,9 +343,12 @@ io.on('connection', (socket) => {
   socket.on('UNLOCK_TRAY', () => {
     const roomId = clients[socket.id]?.roomId;
     if ((clients[socket.id]?.role !== 'JUDGE' && clients[socket.id]?.role !== 'ADMIN') || !roomId) return;
+    
     if (rooms[roomId].gameState.status === 'IN_PROGRESS') {
       rooms[roomId].gameState.isTrayUnlocked = true;
-      io.to(roomId).emit('STATE_UPDATE', rooms[roomId].gameState);
+      
+      broadcastState(roomId); // Use our sanitized state broadcaster
+      io.to(roomId).emit('CLEAR_STREAM'); // Explicitly command the stream to close any lingering cards
     }
   });
 
@@ -359,6 +364,7 @@ io.on('connection', (socket) => {
     gs.revealedSlots.push(slotIndex);
     gs.results[gs.currentTurn] = { role, slotIndex };
     gs.isTrayUnlocked = false;
+	gs.isCardRevealed = true;
 
     // Send the secret role ONLY to the tablet that clicked it
     socket.emit('PRIVATE_ROLE_REVEAL', { role, slotIndex });
@@ -377,24 +383,32 @@ io.on('connection', (socket) => {
     if ((clients[socket.id]?.role !== 'JUDGE' && clients[socket.id]?.role !== 'ADMIN') || !roomId) return;
     
     const gs = rooms[roomId].gameState;
-    if (gs.status !== 'IN_PROGRESS') return;
+    
+    // CRITICAL GUARDRAIL: Reject the force pick if the game isn't active,
+    // if the tray is already locked, or if a card is already on the screen!
+    if (gs.status !== 'IN_PROGRESS' || !gs.isTrayUnlocked || gs.isCardRevealed) {
+      return; 
+    }
 
-    // 1. Figure out which slots haven't been picked yet
+    // 1. Find available slots
     const allSlots = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
     const availableSlots = allSlots.filter(s => !gs.revealedSlots.includes(s));
     
     if (availableSlots.length === 0) return;
 
-    // 2. Pick a random slot from the remaining available slots
+    // 2. Pick randomly
     const randomSlotIndex = availableSlots[Math.floor(Math.random() * availableSlots.length)];
     const role = gs.slots[randomSlotIndex];
 
-    // 3. Update the game state
+    // 3. Update the tracking arrays
     gs.revealedSlots.push(randomSlotIndex);
     gs.results[gs.currentTurn] = { role, slotIndex: randomSlotIndex };
+    
+    // 4. CRITICAL FIX: Lock the tray AND tell the UI a card is actively being viewed
     gs.isTrayUnlocked = false;
+    gs.isCardRevealed = true; 
 
-    // 4. SMART ANIMATION: Find the tablet (PLAYER role) and force the 3D flip!
+    // 5. Trigger animations on the Player tablet
     const playerSockets = Object.values(clients)
       .filter(c => c.roomId === roomId && c.role === 'PLAYER')
       .map(c => c.id);
@@ -403,13 +417,14 @@ io.on('connection', (socket) => {
       io.to(playerId).emit('PRIVATE_ROLE_REVEAL', { role, slotIndex: randomSlotIndex });
     });
 
-    // 5. Tell the Admin, Judge, and Stream that a card was revealed
+    // 6. Tell the Stream and Admin
     io.to(roomId).emit('CARD_REVEALED', { seat: gs.currentTurn, role, cardIndex: randomSlotIndex });
 
-    // 6. Advance the turn
+    // 7. Advance Turn
     if (gs.currentTurn >= 10) gs.status = 'COMPLETED';
     else gs.currentTurn++;
     
+    // 8. Broadcast the updated flags
     broadcastState(roomId);
   });
 
@@ -426,6 +441,18 @@ io.on('connection', (socket) => {
     
     updateClientCounts(roomId);
     io.to(roomId).emit('STATE_UPDATE', rooms[roomId].gameState);
+  });
+
+  // NEW: Relay the player's "I Memorized It" button to the Stream overlay
+  socket.on('MEMORIZED_ROLE', () => {
+    const roomId = clients[socket.id]?.roomId;
+    if (roomId && rooms[roomId]) {
+      rooms[roomId].gameState.isCardRevealed = false; // Mark the card as closed
+      broadcastState(roomId);                         // Update the Judge UI immediately
+      
+      io.to(roomId).emit('CLEAR_STREAM');             // Close the OBS overlay
+      io.to(roomId).emit('CLOSE_PLAYER_REVEAL');      // Close the Player tablet overlay
+    }
   });
 
   socket.on('disconnect', () => {

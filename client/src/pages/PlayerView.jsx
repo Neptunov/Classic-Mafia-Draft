@@ -5,34 +5,39 @@ export default function PlayerView() {
   const [gameState, setGameState] = useState(null);
   const [revealedRole, setRevealedRole] = useState(null);
   const [isFlipping, setIsFlipping] = useState(false);
-  const [pendingPick, setPendingPick] = useState(null);
 
   useEffect(() => {
     socket.on('STATE_UPDATE', setGameState);
+    
     socket.on('PRIVATE_ROLE_REVEAL', (data) => {
-      setPendingPick(null);
       setRevealedRole(data.role);
-      setTimeout(() => setIsFlipping(true), 100); // Slight delay for dramatic effect
+      setTimeout(() => setIsFlipping(true), 100); 
     });
+
+    // NEW: Listen for the Judge forcing the card to close
+    socket.on('CLOSE_PLAYER_REVEAL', () => {
+      setIsFlipping(false);
+      setTimeout(() => setRevealedRole(null), 800);
+    });
+
     return () => {
       socket.off('STATE_UPDATE');
       socket.off('PRIVATE_ROLE_REVEAL');
+      socket.off('CLOSE_PLAYER_REVEAL'); // <-- Don't forget to clean it up
     };
   }, []);
 
-  const handleCardClick = (index) => {
+  // INSTANT PICK LOGIC
+  const handlePick = (index) => {
     if (gameState?.isTrayUnlocked && !gameState.revealedSlots.includes(index)) {
-      setPendingPick(index);
+      socket.emit('PICK_CARD', index);
     }
-  };
-
-  const confirmPick = () => {
-    socket.emit('PICK_CARD', pendingPick);
   };
 
   const closeReveal = () => {
     setIsFlipping(false);
-    setTimeout(() => setRevealedRole(null), 800); // Wait for flip animation to finish
+    socket.emit('MEMORIZED_ROLE'); // <-- NEW: Tell the Stream to play the closing animation!
+    setTimeout(() => setRevealedRole(null), 800); 
   };
 
   if (!gameState || gameState.status === 'PENDING') {
@@ -60,29 +65,31 @@ export default function PlayerView() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '20px', width: '100%', maxWidth: '1000px', margin: '0 auto' }}>
         {[...Array(10)].map((_, i) => (
           <div 
-            key={i} onClick={() => handleCardClick(i)}
+            key={i} 
+            // FIRE IMMEDIATELY ON TAP
+            onClick={() => handlePick(i)}
             style={{
               height: '180px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: 'bold',
               backgroundColor: gameState.revealedSlots.includes(i) ? '#1f2937' : (gameState.isTrayUnlocked ? '#2563eb' : '#1e293b'),
               cursor: gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i) ? 'pointer' : 'default',
-              border: pendingPick === i ? '6px solid #fbbf24' : (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i) ? '3px solid #60a5fa' : '3px solid #334155'),
-              boxShadow: (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i) && pendingPick !== i) ? '0 0 20px rgba(59, 130, 246, 0.4)' : 'none',
+              border: gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i) ? '3px solid #60a5fa' : '3px solid #334155',
+              boxShadow: (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i)) ? '0 0 20px rgba(59, 130, 246, 0.4)' : 'none',
               opacity: gameState.revealedSlots.includes(i) ? 0.2 : 1,
-              transition: 'all 0.2s'
+              transition: 'all 0.1s ease-in-out', // Faster transition for snappy feel
+              transform: 'scale(1)'
             }}
+            // TACTILE FEEDBACK: Squish slightly when pressed
+            onMouseDown={(e) => { if (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i)) e.currentTarget.style.transform = 'scale(0.95)'; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+            // For touch devices
+            onTouchStart={(e) => { if (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i)) e.currentTarget.style.transform = 'scale(0.95)'; }}
+            onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
             {gameState.revealedSlots.includes(i) ? '✘' : i + 1}
           </div>
         ))}
       </div>
-
-      {pendingPick !== null && (
-        <div style={{ position: 'fixed', top: '60px', backgroundColor: '#fbbf24', color: 'black', padding: '15px 30px', borderRadius: '8px', fontWeight: 'bold', zIndex: 200, display: 'flex', gap: '20px', alignItems: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
-          Confirm Pick: Card #{pendingPick + 1}? 
-          <button onClick={confirmPick} style={{ padding: '10px 25px', borderRadius: '6px', border: 'none', backgroundColor: 'black', color: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>YES</button>
-          <button onClick={() => setPendingPick(null)} style={{ padding: '10px 25px', borderRadius: '6px', border: 'none', backgroundColor: '#4b5563', color: 'white', cursor: 'pointer', fontSize: '16px' }}>NO</button>
-        </div>
-      )}
 
       {revealedRole && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 500 }}>
