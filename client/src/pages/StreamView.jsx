@@ -1,3 +1,9 @@
+/**
+ * @file StreamView.jsx
+ * @description The transparent cinematic overlay designed for OBS Studio.
+ * Synchronizes with the live table state and enforces an "Audience Protection Timer" 
+ * to guarantee viewer legibility regardless of player interaction speed.
+ */
 import { useState, useEffect, useRef } from 'react';
 import { socket, deviceId } from '../utils/socket';
 
@@ -6,14 +12,13 @@ export default function StreamView() {
   const [clientIp, setClientIp] = useState('Detecting network IP...');
   const [gameState, setGameState] = useState(null);
   
-  // State & Refs
   const [queue, setQueue] = useState([]);
   const [currentReveal, setCurrentReveal] = useState(null);
   const [isFlipping, setIsFlipping] = useState(false);
   const [clearSignal, setClearSignal] = useState(0); 
   
   const isClosingRef = useRef(false);
-  const revealStartTime = useRef(0); // NEW: Tracks when the card appeared
+  const revealStartTime = useRef(0); 
 
   useEffect(() => {
     socket.emit('REQUEST_STREAM_ACCESS', { userAgent: navigator.userAgent, deviceId });
@@ -43,7 +48,6 @@ export default function StreamView() {
     };
   }, []);
 
-  // 1. Process Queue
   useEffect(() => {
     if (!currentReveal && queue.length > 0 && !isClosingRef.current) {
       setCurrentReveal(queue[0]);
@@ -51,54 +55,45 @@ export default function StreamView() {
     }
   }, [currentReveal, queue]);
 
-  // 2. Play Reveal Animation (NOW FASTER)
   useEffect(() => {
     if (currentReveal) {
-      revealStartTime.current = Date.now(); // Mark the exact time it appeared
-      
-      // Removed the 1000ms delay. It now drops and flips almost immediately (150ms).
+      revealStartTime.current = Date.now(); 
       const flipIn = setTimeout(() => setIsFlipping(true), 150);
-      
       const failsafe = setTimeout(() => triggerClose(), 7000); 
       return () => { clearTimeout(flipIn); clearTimeout(failsafe); };
     }
   }, [currentReveal]);
 
-  // 3. Watch for Close Triggers
   useEffect(() => {
     if (currentReveal && clearSignal > 0) {
       triggerClose();
     }
   }, [clearSignal]);
 
-  // 4. Dynamic Close with Audience Protection
   const triggerClose = () => {
     if (isClosingRef.current || !currentReveal) return;
     
-    const MIN_DISPLAY_TIME = 2500; // Force it to stay on screen for at least 2.5 seconds
+    const MIN_DISPLAY_TIME = 2500; 
     const elapsed = Date.now() - revealStartTime.current;
 
     if (elapsed < MIN_DISPLAY_TIME) {
-      // The player was too fast! Delay the stream close so the audience can read it.
       setTimeout(() => executeClose(), MIN_DISPLAY_TIME - elapsed);
     } else {
-      // It's been on screen long enough, close immediately.
       executeClose();
     }
   };
 
   const executeClose = () => {
     isClosingRef.current = true;
-    setIsFlipping(false); // Flip backwards
+    setIsFlipping(false); 
     
     setTimeout(() => {
       setCurrentReveal(null);
       isClosingRef.current = false; 
-    }, 500); // Match this with your CSS transition time
+    }, 500); 
   };
 
 
-  // --- VIEW 1: WAITING SCREEN (Shown while waiting for Admin to assign) ---
   if (!isVerified) {
     return (
       <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111827', color: 'white', fontFamily: 'sans-serif', textAlign: 'center' }}>
@@ -113,16 +108,14 @@ export default function StreamView() {
     );
   }
 
-  // --- VIEW 2: VERIFIED OBS OVERLAY (Fully Transparent) ---
   return (
     <div style={{ 
       width: '100vw', height: '100vh', 
-      backgroundColor: 'transparent', // Crucial for OBS chroma/alpha keying
+      backgroundColor: 'transparent',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
       fontFamily: 'sans-serif', overflow: 'hidden' 
     }}>
       
-      {/* Force the background to be transparent and override Vite's default index.css */}
       <style>{`
         :root, html, body, #root { 
           background-color: transparent !important; 
@@ -137,7 +130,6 @@ export default function StreamView() {
         .stream-card-container { width: 320px; height: 480px; perspective: 1000px; margin-bottom: 25px; animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .stream-card-inner {
           position: relative; width: 100%; height: 100%; text-align: center;
-          /* Changed from 0.8s to 0.5s for a faster, punchier flip */
           transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
           transform-style: preserve-3d;
           transform: ${isFlipping ? 'rotateY(180deg)' : 'rotateY(0deg)'};
@@ -161,7 +153,6 @@ export default function StreamView() {
 
       {currentReveal && (
         <>
-          {/* THE 3D CARD */}
           <div className="stream-card-container">
             <div className="stream-card-inner">
               <div className="stream-card-front">?</div>
@@ -174,13 +165,11 @@ export default function StreamView() {
             </div>
           </div>
 
-          {/* THE SEAT INDICATOR */}
           <div className="seat-badge">
             SEAT {currentReveal.seat}
           </div>
         </>
       )}
-
     </div>
   );
 }

@@ -1,29 +1,86 @@
+/**
+ * @file server/index.js
+ * @description Core backend server for the Classic Mafia Draft App.
+ * Handles WebSocket routing, state synchronization, persistent storage, 
+ * and secure tournament administration.
+ * @version 0.1.0
+ */
+
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import os from 'os';
+import fs from 'fs';          
+import crypto from 'crypto';  
+import readline from 'readline'; 
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
-
 const io = new Server(server, {
-  cors: {
-    origin: "*", 
-    methods: ["GET", "POST"]
-  }
+  cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-const ADMIN_PASSWORD = 'mafia';
+const STORE_FILE = path.join(__dirname, 'store.json');
+const packageJsonPath = path.join(__dirname, 'package.json');
+const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const APP_VERSION = packageData.version;
+
+let adminCredentials = null;
+let rooms = {};      
+
+const clients = {};  
+const sessions = {}; 
+
+/**
+ * Hashes a plaintext password securely using PBKDF2.
+ */
+function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return { salt, hash };
+}
+
+/**
+ * Saves the current state (version, credentials, and active rooms) to disk.
+ */
+function saveState() {
+  const data = {
+    version: APP_VERSION,
+    admin: adminCredentials,
+    rooms: rooms
+  };
+  fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2));
+}
+
+/**
+ * Validates incoming plaintext passwords against the stored hash.
+ */
+function verifyAdmin(password) {
+  if (!adminCredentials) return false;
+  const { hash } = hashPassword(password, adminCredentials.salt);
+  return hash === adminCredentials.hash;
+}
+
+// --- PRODUCTION FILE SERVING ---
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath));
+
+app.get(/(.*)/, (req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
+});
+
 const INITIAL_DECK = [
   'Citizen', 'Citizen', 'Citizen', 'Citizen', 'Citizen', 'Citizen',
   'Sheriff', 'Mafia', 'Mafia', 'Don'
 ];
 
-// --- MULTI-TABLE DATA STRUCTURES ---
-const clients = {};  // socket.id -> { id, deviceId, name, ip, role, roomId }
-const sessions = {}; // deviceId -> { name, role, roomId }
-const rooms = {};    // roomId -> { gameState: {...} }
-
-// Helper to create a fresh room state
+/**
+ * Generates a fresh game state object for a new table.
+ */
 function getInitialGameState() {
   return {
     status: 'PENDING',
@@ -32,13 +89,16 @@ function getInitialGameState() {
     currentTurn: 1,
     results: {}, 
     isTrayUnlocked: false,
-    isCardRevealed: false, // <-- NEW STATE FLAG
+    isCardRevealed: false, 
     isDebugMode: false,
     areRolesLocked: false,
     clientCounts: { PLAYER: 0, JUDGE: 0, STREAM: 0, ADMIN: 0, UNASSIGNED: 0, PENDING_STREAM: 0 }
   };
 }
 
+/**
+ * Broadcasts the sanitized game state to all clients in a specific room.
+ */
 function broadcastState(roomId) {
   if (!roomId || !rooms[roomId]) return;
   const gs = rooms[roomId].gameState;
@@ -49,9 +109,12 @@ function broadcastState(roomId) {
   }
 
   io.to(roomId).emit('STATE_UPDATE', cleanState);
-  broadcastToAdmins(); // Admins receive the same sanitized state to prevent accidental peeking
+  broadcastToAdmins(); 
 }
 
+/**
+ * Randomizes an array in place using the Fisher-Yates algorithm.
+ */
 function shuffle(array) {
   let currentIndex = array.length, randomIndex;
   while (currentIndex !== 0) {
@@ -62,32 +125,30 @@ function shuffle(array) {
   return array;
 }
 
-// NEW: Global broadcaster for Super Admins
+/**
+ * Global broadcaster for Super Admins. 
+ * Sends sanitized state to prevent tournament peeking via DevTools.
+ */
 function broadcastToAdmins() {
   const adminSockets = Object.values(clients).filter(c => c.role === 'ADMIN').map(c => c.id);
   if (adminSockets.length === 0) return;
 
-  // We must build a clean copy of the entire rooms dictionary
   const sanitizedRooms = {};
   
   for (const [roomId, roomData] of Object.entries(rooms)) {
     const cleanState = { ...roomData.gameState };
-    
-    // If debug is OFF for this specific room, hide its deck
     if (!cleanState.isDebugMode) {
       cleanState.slots = "{HIDDEN_FOR_TOURNAMENT_INTEGRITY}";
     }
-    
     sanitizedRooms[roomId] = { gameState: cleanState };
   }
 
   adminSockets.forEach(adminId => {
     io.to(adminId).emit('REGISTRY_UPDATE', Object.values(clients));
-    io.to(adminId).emit('ROOMS_UPDATE', sanitizedRooms); // Send the scrubbed data!
+    io.to(adminId).emit('ROOMS_UPDATE', sanitizedRooms); 
   });
 }
 
-// NEW: Broadcasts the list of active rooms to players in the lobby
 function broadcastAvailableRooms() {
   io.emit('AVAILABLE_ROOMS', Object.keys(rooms));
 }
@@ -102,14 +163,13 @@ function updateClientCounts(roomId) {
   
   rooms[roomId].gameState.clientCounts = counts;
   io.to(roomId).emit('STATE_UPDATE', rooms[roomId].gameState);
-  broadcastToAdmins(); // Update the Admin dashboard
+  broadcastToAdmins(); 
 }
 
 // --- WEBSOCKET LOGIC ---
 io.on('connection', (socket) => {
   const clientIp = socket.handshake.address;
 
-  // Send the room list immediately when anyone connects
   socket.emit('AVAILABLE_ROOMS', Object.keys(rooms));
 
   socket.on('IDENTIFY', (deviceId) => {
@@ -118,8 +178,7 @@ io.on('connection', (socket) => {
     if (sessions[deviceId] && sessions[deviceId].roomId) {
       const roomId = sessions[deviceId].roomId;
       
-      // If the room was deleted while they were disconnected, wipe their session
-      if (!rooms[roomId] && sessions[deviceId].role !== 'ADMIN') {
+      if (roomId !== 'GLOBAL' && !rooms[roomId] && sessions[deviceId].role !== 'ADMIN') {
         sessions[deviceId].roomId = null;
         sessions[deviceId].role = 'UNASSIGNED';
         socket.emit('ROLE_ASSIGNED', 'UNASSIGNED');
@@ -139,12 +198,11 @@ io.on('connection', (socket) => {
     } 
   });
 
-  // UPDATED: No longer auto-creates rooms. Fails if room doesn't exist.
   socket.on('JOIN_ROOM', ({ name, roomCode }) => {
     if (!socket.deviceId) return;
     const roomId = roomCode.toUpperCase().trim();
     
-    if (!rooms[roomId]) return; // Fails silently if room doesn't exist
+    if (!rooms[roomId]) return; 
 
     socket.join(roomId);
     sessions[socket.deviceId] = { name, role: 'UNASSIGNED', roomId };
@@ -154,38 +212,58 @@ io.on('connection', (socket) => {
     broadcastToAdmins();
   });
 
-  // UPDATED: Admin is now a Global entity
   socket.on('ADMIN_LOGIN', (password, callback) => {
-    if (password === ADMIN_PASSWORD && socket.deviceId) {
-      sessions[socket.deviceId] = { name: 'Super Admin', role: 'ADMIN', roomId: 'GLOBAL' };
-      clients[socket.id] = { id: socket.id, deviceId: socket.deviceId, name: 'Super Admin', ip: clientIp, role: 'ADMIN', roomId: 'GLOBAL' };
+    if (verifyAdmin(password)) {
+      if (!clients[socket.id]) clients[socket.id] = { id: socket.id, deviceId: socket.deviceId };
+      clients[socket.id].role = 'ADMIN';
       
-      callback({ success: true });
+      if (socket.deviceId) {
+        sessions[socket.deviceId] = { name: 'Tournament Admin', role: 'ADMIN', roomId: 'GLOBAL' };
+      }
+
+      socket.emit('ROLE_ASSIGNED', 'ADMIN');
       broadcastToAdmins();
+      if (typeof callback === 'function') callback({ success: true });
     } else {
-      callback({ success: false, message: 'Invalid password' });
+      if (typeof callback === 'function') callback({ success: false, message: 'Invalid Admin Password' });
     }
   });
-
-  // NEW: Admin creates a room
-  socket.on('CREATE_ROOM', (roomCode) => {
+  
+  socket.on('CHANGE_PASSWORD', ({ oldPassword, newPassword }) => {
     if (clients[socket.id]?.role !== 'ADMIN') return;
+
+    if (verifyAdmin(oldPassword)) {
+      adminCredentials = hashPassword(newPassword);
+      saveState();
+      
+      socket.emit('PASSWORD_CHANGED_SUCCESS', 'Password updated successfully.');
+      console.log(`[SECURITY] Master admin password rotated by Admin at ${new Date().toISOString()}`);
+    } else {
+      socket.emit('PASSWORD_CHANGED_FAILED', 'Incorrect current password.');
+      console.warn(`[SECURITY] Failed password rotation attempt from Admin.`);
+    }
+  });
+  
+  socket.on('CREATE_ROOM', (roomCode) => {
+    if (clients[socket.id]?.role !== 'ADMIN') {
+      socket.emit('ROLE_ASSIGNED', 'UNASSIGNED'); 
+      return;
+    }
     const roomId = roomCode.toUpperCase().trim();
-    if (!roomId || rooms[roomId]) return; // Don't overwrite existing rooms
+    if (!roomId || rooms[roomId]) return; 
     
     rooms[roomId] = { gameState: getInitialGameState() };
     broadcastAvailableRooms();
     broadcastToAdmins();
+    saveState();
   });
 
-  // UPDATED: Admin deletes a room (Now handles streams properly)
   socket.on('DELETE_ROOM', (roomId) => {
     if (clients[socket.id]?.role !== 'ADMIN') return;
     if (!rooms[roomId] || rooms[roomId].gameState.areRolesLocked) return; 
 
     Object.values(clients).forEach(client => {
       if (client.roomId === roomId && client.role !== 'ADMIN') {
-        // If it was a stream, send it back to the global pending pool. Otherwise, to the lobby.
         const newRole = client.role === 'STREAM' ? 'PENDING_STREAM' : 'UNASSIGNED';
         const newRoom = client.role === 'STREAM' ? 'GLOBAL' : null;
         
@@ -202,12 +280,12 @@ io.on('connection', (socket) => {
     delete rooms[roomId];
     broadcastAvailableRooms();
     broadcastToAdmins();
+	  saveState();
   });
 
-  // UPDATED: Streams now park in the GLOBAL room and grab their IP
   socket.on('REQUEST_STREAM_ACCESS', (payload) => {
     const { userAgent, deviceId } = payload;
-    const roomId = 'GLOBAL'; // Streams no longer guess the room!
+    const roomId = 'GLOBAL'; 
 
     socket.join(roomId);
 
@@ -215,7 +293,6 @@ io.on('connection', (socket) => {
     clients[socket.id] = { id: socket.id, deviceId, name: sessions[deviceId].name, ip: clientIp, role: sessions[deviceId].role, roomId };
 
     if (clients[socket.id].role === 'STREAM') {
-      // Re-join their actual assigned room if they refresh
       socket.join(clients[socket.id].roomId);
       io.to(socket.id).emit('ROLE_ASSIGNED', 'STREAM');
       return;
@@ -232,25 +309,22 @@ io.on('connection', (socket) => {
     sessions[deviceId].name = streamName;
 
     io.to(socket.id).emit('ROLE_ASSIGNED', 'PENDING_STREAM');
-    io.to(socket.id).emit('STREAM_IP', clientIp); // Send IP to the tablet/OBS
+    io.to(socket.id).emit('STREAM_IP', clientIp); 
     
     broadcastToAdmins();
   });
 
-  // NEW: Admin officially assigns a pending stream to a specific room
   socket.on('VERIFY_STREAM', ({ targetSocketId, targetRoomId }) => {
     if (clients[socket.id]?.role !== 'ADMIN') return;
     
     const targetClient = clients[targetSocketId];
     if (!targetClient || !rooms[targetRoomId]) return;
 
-    // Move the stream from GLOBAL to the active room
     targetClient.roomId = targetRoomId;
     targetClient.role = 'STREAM';
     sessions[targetClient.deviceId].roomId = targetRoomId;
     sessions[targetClient.deviceId].role = 'STREAM';
 
-    // Move their socket connection to the new room
     const targetSocket = io.sockets.sockets.get(targetSocketId);
     if (targetSocket) {
       targetSocket.leave('GLOBAL');
@@ -262,7 +336,6 @@ io.on('connection', (socket) => {
     broadcastToAdmins();
   });
 
-  // UPDATED: Admin actions now read the target's roomId
   socket.on('ASSIGN_ROLE', ({ targetSocketId, newRole }) => {
     if (clients[socket.id]?.role !== 'ADMIN') return;
     
@@ -295,7 +368,6 @@ io.on('connection', (socket) => {
     broadcastToAdmins();
   });
 
-  // UPDATED: Admin toggles require the UI to tell the server WHICH room to target
   socket.on('TOGGLE_ROLE_LOCK', ({ roomId, booleanState }) => {
     if (clients[socket.id]?.role !== 'ADMIN' || !rooms[roomId] || rooms[roomId].gameState.status === 'IN_PROGRESS') return;
     rooms[roomId].gameState.areRolesLocked = booleanState;
@@ -312,12 +384,13 @@ io.on('connection', (socket) => {
 
   socket.on('REQUEST_REGISTRY', () => {
     if (clients[socket.id]?.role === 'ADMIN') {
-      socket.emit('REGISTRY_UPDATE', Object.values(clients));
-      socket.emit('ROOMS_UPDATE', rooms);
+      broadcastToAdmins(); 
+    } else {
+      socket.emit('ROLE_ASSIGNED', 'UNASSIGNED');
     }
   });
 
-  // 6. Game Logic (Room-Isolated)
+  // --- GAME LOGIC ---
   socket.on('START_DRAFT', () => {
     const roomId = clients[socket.id]?.roomId;
     if ((clients[socket.id]?.role !== 'JUDGE' && clients[socket.id]?.role !== 'ADMIN') || !roomId) return;
@@ -335,9 +408,10 @@ io.on('connection', (socket) => {
     gs.currentTurn = 1;
     gs.results = {};
     gs.isTrayUnlocked = false;
-	gs.isCardRevealed = false;
+	  gs.isCardRevealed = false;
     
     broadcastState(roomId);
+	  saveState();
   });
 
   socket.on('UNLOCK_TRAY', () => {
@@ -346,9 +420,8 @@ io.on('connection', (socket) => {
     
     if (rooms[roomId].gameState.status === 'IN_PROGRESS') {
       rooms[roomId].gameState.isTrayUnlocked = true;
-      
-      broadcastState(roomId); // Use our sanitized state broadcaster
-      io.to(roomId).emit('CLEAR_STREAM'); // Explicitly command the stream to close any lingering cards
+      broadcastState(roomId); 
+      io.to(roomId).emit('CLEAR_STREAM'); 
     }
   });
 
@@ -364,18 +437,16 @@ io.on('connection', (socket) => {
     gs.revealedSlots.push(slotIndex);
     gs.results[gs.currentTurn] = { role, slotIndex };
     gs.isTrayUnlocked = false;
-	gs.isCardRevealed = true;
+	  gs.isCardRevealed = true;
 
-    // Send the secret role ONLY to the tablet that clicked it
     socket.emit('PRIVATE_ROLE_REVEAL', { role, slotIndex });
-    
-    // Broadcast the public action to everyone else
     io.to(roomId).emit('CARD_REVEALED', { seat: gs.currentTurn, role, cardIndex: slotIndex });
 
     if (gs.currentTurn >= 10) gs.status = 'COMPLETED';
     else gs.currentTurn++;
     
     broadcastState(roomId);
+	  saveState();
   });
 
   socket.on('FORCE_PICK', () => {
@@ -384,31 +455,23 @@ io.on('connection', (socket) => {
     
     const gs = rooms[roomId].gameState;
     
-    // CRITICAL GUARDRAIL: Reject the force pick if the game isn't active,
-    // if the tray is already locked, or if a card is already on the screen!
     if (gs.status !== 'IN_PROGRESS' || !gs.isTrayUnlocked || gs.isCardRevealed) {
       return; 
     }
 
-    // 1. Find available slots
     const allSlots = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
     const availableSlots = allSlots.filter(s => !gs.revealedSlots.includes(s));
     
     if (availableSlots.length === 0) return;
 
-    // 2. Pick randomly
     const randomSlotIndex = availableSlots[Math.floor(Math.random() * availableSlots.length)];
     const role = gs.slots[randomSlotIndex];
 
-    // 3. Update the tracking arrays
     gs.revealedSlots.push(randomSlotIndex);
     gs.results[gs.currentTurn] = { role, slotIndex: randomSlotIndex };
-    
-    // 4. CRITICAL FIX: Lock the tray AND tell the UI a card is actively being viewed
     gs.isTrayUnlocked = false;
     gs.isCardRevealed = true; 
 
-    // 5. Trigger animations on the Player tablet
     const playerSockets = Object.values(clients)
       .filter(c => c.roomId === roomId && c.role === 'PLAYER')
       .map(c => c.id);
@@ -417,15 +480,13 @@ io.on('connection', (socket) => {
       io.to(playerId).emit('PRIVATE_ROLE_REVEAL', { role, slotIndex: randomSlotIndex });
     });
 
-    // 6. Tell the Stream and Admin
     io.to(roomId).emit('CARD_REVEALED', { seat: gs.currentTurn, role, cardIndex: randomSlotIndex });
 
-    // 7. Advance Turn
     if (gs.currentTurn >= 10) gs.status = 'COMPLETED';
     else gs.currentTurn++;
     
-    // 8. Broadcast the updated flags
     broadcastState(roomId);
+	  saveState();
   });
 
   socket.on('RESET_DRAFT', () => {
@@ -443,15 +504,15 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('STATE_UPDATE', rooms[roomId].gameState);
   });
 
-  // NEW: Relay the player's "I Memorized It" button to the Stream overlay
   socket.on('MEMORIZED_ROLE', () => {
     const roomId = clients[socket.id]?.roomId;
     if (roomId && rooms[roomId]) {
-      rooms[roomId].gameState.isCardRevealed = false; // Mark the card as closed
-      broadcastState(roomId);                         // Update the Judge UI immediately
+      rooms[roomId].gameState.isCardRevealed = false; 
+      broadcastState(roomId);                         
+	    saveState();
       
-      io.to(roomId).emit('CLEAR_STREAM');             // Close the OBS overlay
-      io.to(roomId).emit('CLOSE_PLAYER_REVEAL');      // Close the Player tablet overlay
+      io.to(roomId).emit('CLEAR_STREAM');             
+      io.to(roomId).emit('CLOSE_PLAYER_REVEAL');      
     }
   });
 
@@ -461,12 +522,83 @@ io.on('connection', (socket) => {
     
     if (roomId) {
       updateClientCounts(roomId);
-      broadcastToAdmins(); // <-- FIXED: Now uses the new global dashboard updater!
+      broadcastToAdmins(); 
     }
   });
 });
 
-const PORT = 3001;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Multi-Table Mafia Server running on port ${PORT}`);
-});
+// --- BOOT SEQUENCE & CLI ---
+function getLocalIpAddress() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '<YOUR_IPV4_ADDRESS>'; 
+}
+
+const PORT = process.env.PORT || 3000;
+const LOCAL_IP = getLocalIpAddress();
+
+if (fs.existsSync(STORE_FILE)) {
+  try {
+    const rawData = fs.readFileSync(STORE_FILE, 'utf8');
+    const parsed = JSON.parse(rawData);
+    
+    if (parsed.version === APP_VERSION) {
+      adminCredentials = parsed.admin;
+      rooms = parsed.rooms || {};
+      console.log(`[STORAGE] Restored previous session data (v${APP_VERSION}).`);
+    } else {
+      console.warn(`[WARNING] Data version mismatch. App is v${APP_VERSION}, Data is v${parsed.version || 'unknown'}.`);
+      console.warn(`[WARNING] Starting with fresh state to prevent corruption.`);
+    }
+  } catch (err) {
+    console.error(`[ERROR] store.json is corrupted. Starting fresh.`, err);
+  }
+}
+
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+function startServer() {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n=== 🃏 MAFIA TOURNAMENT SERVER LIVE (v${APP_VERSION}) ===`);
+	  console.log(`1. Admin PC:   http://localhost:${PORT}`);
+	  console.log(`2. LAN Access: http://${LOCAL_IP}:${PORT}`);
+	  console.log(`=======================================\n`);
+    console.log(`Type "reset" and press Enter to wipe the server state.\n`);
+  });
+
+  rl.on('line', (input) => {
+    if (input.trim().toLowerCase() === 'reset') {
+      rl.question('WARNING: Enter Admin Password to confirm factory reset: ', (pass) => {
+        if (verifyAdmin(pass)) {
+          fs.unlinkSync(STORE_FILE);
+          console.log(`\n[SUCCESS] Server wiped. Please restart the application (Ctrl+C then npm run dev).\n`);
+          process.exit(0);
+        } else {
+          console.log(`[ERROR] Incorrect password. Reset aborted.\n`);
+        }
+      });
+    }
+  });
+}
+
+if (!adminCredentials) {
+  console.log(`\n=== FIRST TIME SETUP ===`);
+  rl.question('Create your master Admin password: ', (newPass) => {
+    if (newPass.length < 4) {
+      console.log('Password too short. Restart server and try again.');
+      process.exit(1);
+    }
+    adminCredentials = hashPassword(newPass);
+    saveState();
+    console.log(`[SUCCESS] Encrypted admin credentials saved.\n`);
+    startServer();
+  });
+} else {
+  startServer();
+}

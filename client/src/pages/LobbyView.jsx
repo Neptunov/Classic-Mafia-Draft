@@ -1,3 +1,8 @@
+/**
+ * @file LobbyView.jsx
+ * @description The entry point for all non-admin users. 
+ * Allows players and judges to select a tournament table and declare a device name.
+ */
 import { useState, useEffect } from 'react';
 import { socket } from '../utils/socket';
 import { Link } from 'react-router-dom';
@@ -9,10 +14,8 @@ export default function LobbyView() {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
-    // Listen for the live list of rooms
     socket.on('AVAILABLE_ROOMS', (roomsList) => {
       setAvailableRooms(roomsList);
-      // Auto-select the first room if one isn't selected
       if (roomsList.length > 0 && !roomCode) setRoomCode(roomsList[0]);
     });
 
@@ -54,14 +57,7 @@ export default function LobbyView() {
             <>
               <select 
                 value={roomCode} onChange={(e) => setRoomCode(e.target.value)}
-                style={{ 
-                  padding: '15px', 
-                  fontSize: '18px', 
-                  borderRadius: '8px', 
-                  border: '1px solid #ccc', 
-                  backgroundColor: 'white', 
-                  color: '#111827' // <-- FIXED: Forces text to be dark
-                }} required
+                style={{ padding: '15px', fontSize: '18px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: 'white', color: '#111827' }} required
               >
                 {availableRooms.map(room => (
                   <option key={room} value={room}>{room}</option>
@@ -70,14 +66,7 @@ export default function LobbyView() {
               <input 
                 type="text" value={name} onChange={(e) => setName(e.target.value)} 
                 placeholder="Device Name (e.g., Player 1 iPad)"
-                style={{ 
-                  padding: '15px', 
-                  fontSize: '18px', 
-                  borderRadius: '8px', 
-                  border: '1px solid #ccc',
-                  backgroundColor: 'white', // <-- FIXED: Forces background to be white
-                  color: '#111827'          // <-- FIXED: Forces text to be dark
-                }} required
+                style={{ padding: '15px', fontSize: '18px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: 'white', color: '#111827' }} required
               />
               <button type="submit" style={{ padding: '15px', fontSize: '18px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                 Connect to Table

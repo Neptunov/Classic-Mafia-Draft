@@ -1,3 +1,8 @@
+/**
+ * @file JudgeView.jsx
+ * @description The live control panel for the game moderator. 
+ * Allows the judge to open the draft tray, force picks for delayed players, and monitor the resulting deck.
+ */
 import { useState, useEffect } from 'react';
 import { socket } from '../utils/socket';
 
@@ -44,7 +49,6 @@ export default function JudgeView() {
               {gameState.isCardRevealed ? 'WAITING FOR PLAYER TO MEMORIZE...' : (gameState.isTrayUnlocked ? 'TRAY IS UNLOCKED' : `ALLOW PICK (Seat ${gameState.currentTurn})`)}
             </button>
             
-            {/* DYNAMIC TOGGLE: Close Card vs Force Pick */}
             {gameState.isCardRevealed ? (
               <button 
                 onClick={() => socket.emit('MEMORIZED_ROLE')}
@@ -55,7 +59,6 @@ export default function JudgeView() {
             ) : (
               <button 
                 onClick={() => { if(window.confirm("Force a random pick?")) socket.emit('FORCE_PICK') }} 
-                // FIXED: Now available at any point during the draft!
                 disabled={!isDrafting}
                 style={{ flex: 1, padding: '20px', backgroundColor: isDrafting ? '#d97706' : '#374151', color: 'white', border: 'none', borderRadius: '8px', cursor: isDrafting ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}
               >
@@ -73,21 +76,16 @@ export default function JudgeView() {
             const seatNum = i + 1;
             const result = gameState.results[seatNum];
             
-            // Color code the roles for the Judge's quick reference
-            let bgColor = '#374151'; // Default empty gray
+            let bgColor = '#374151'; 
             if (result) {
-              if (result.role === 'Citizen') bgColor = '#dc2626'; // Red
-              else if (result.role === 'Mafia' || result.role === 'Don') bgColor = '#000000'; // Black
-              else if (result.role === 'Sheriff') bgColor = '#d97706'; // Gold
+              if (result.role === 'Citizen') bgColor = '#dc2626'; 
+              else if (result.role === 'Mafia' || result.role === 'Don') bgColor = '#000000'; 
+              else if (result.role === 'Sheriff') bgColor = '#d97706'; 
             }
 
             return (
               <div key={i} style={{ 
-                padding: '10px', 
-                textAlign: 'center', 
-                backgroundColor: bgColor, 
-                borderRadius: '6px', 
-                fontSize: '12px',
+                padding: '10px', textAlign: 'center', backgroundColor: bgColor, borderRadius: '6px', fontSize: '12px',
                 border: result && (result.role === 'Mafia' || result.role === 'Don') ? '1px solid #4b5563' : 'none'
               }}>
                 Seat {seatNum}<br/>

@@ -1,3 +1,8 @@
+/**
+ * @file LoginView.jsx
+ * @description Secure portal for the tournament administrator.
+ * Authenticates against the backend hashed credentials.
+ */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
@@ -11,7 +16,6 @@ export default function LoginView() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // Admin no longer passes a room code
     socket.emit('ADMIN_LOGIN', password, (response) => {
       if (response.success) {
         login();

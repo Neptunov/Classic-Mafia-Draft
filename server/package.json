@@ -1,11 +1,11 @@
 {
-  "name": "server",
-  "version": "1.0.0",
+  "name": "mafia-draft-backend",
+  "version": "0.1.0",
   "type": "module", 
-  "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon index.js"
+    "start": "node index.js",
+    "dev": "nodemon --ignore store.json index.js" 
   },
   "dependencies": {
     "cors": "^2.8.5",

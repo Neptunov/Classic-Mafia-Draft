@@ -1,3 +1,8 @@
+/**
+ * @file PlayerView.jsx
+ * @description The interactive tablet view for the players.
+ * Displays the hidden draft tray, handles local tap inputs, and triggers targeted 3D CSS role reveals.
+ */
 import { useState, useEffect } from 'react';
 import { socket } from '../utils/socket';
 
@@ -14,7 +19,6 @@ export default function PlayerView() {
       setTimeout(() => setIsFlipping(true), 100); 
     });
 
-    // NEW: Listen for the Judge forcing the card to close
     socket.on('CLOSE_PLAYER_REVEAL', () => {
       setIsFlipping(false);
       setTimeout(() => setRevealedRole(null), 800);
@@ -23,11 +27,10 @@ export default function PlayerView() {
     return () => {
       socket.off('STATE_UPDATE');
       socket.off('PRIVATE_ROLE_REVEAL');
-      socket.off('CLOSE_PLAYER_REVEAL'); // <-- Don't forget to clean it up
+      socket.off('CLOSE_PLAYER_REVEAL'); 
     };
   }, []);
 
-  // INSTANT PICK LOGIC
   const handlePick = (index) => {
     if (gameState?.isTrayUnlocked && !gameState.revealedSlots.includes(index)) {
       socket.emit('PICK_CARD', index);
@@ -36,7 +39,7 @@ export default function PlayerView() {
 
   const closeReveal = () => {
     setIsFlipping(false);
-    socket.emit('MEMORIZED_ROLE'); // <-- NEW: Tell the Stream to play the closing animation!
+    socket.emit('MEMORIZED_ROLE'); 
     setTimeout(() => setRevealedRole(null), 800); 
   };
 
@@ -53,7 +56,7 @@ export default function PlayerView() {
         .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; transform: ${isFlipping ? 'rotateY(180deg)' : 'rotateY(0deg)'}; }
         .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; }
         .card-front { background: #1f2937; border: 4px solid #3b82f6; color: #3b82f6; }
-        .card-back { transform: rotateY(180deg); color: white; border: 4px solid white; background: ${revealedRole === 'Citizen' ? '#dc2626' : revealedRole === 'Mafia' ? '#000' : revealedRole === 'Sheriff' ? '#d97706' : '#6b21a8'}; }
+        .card-back { transform: rotateY(180deg); color: white; border: 4px solid white; background: ${revealedRole === 'Citizen' ? '#dc2626' : revealedRole === 'Mafia' || revealedRole === 'Don' ? '#000' : revealedRole === 'Sheriff' ? '#d97706' : '#6b21a8'}; }
       `}</style>
 
       {gameState.isDebugMode && (
@@ -66,7 +69,6 @@ export default function PlayerView() {
         {[...Array(10)].map((_, i) => (
           <div 
             key={i} 
-            // FIRE IMMEDIATELY ON TAP
             onClick={() => handlePick(i)}
             style={{
               height: '180px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: 'bold',
@@ -75,14 +77,12 @@ export default function PlayerView() {
               border: gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i) ? '3px solid #60a5fa' : '3px solid #334155',
               boxShadow: (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i)) ? '0 0 20px rgba(59, 130, 246, 0.4)' : 'none',
               opacity: gameState.revealedSlots.includes(i) ? 0.2 : 1,
-              transition: 'all 0.1s ease-in-out', // Faster transition for snappy feel
+              transition: 'all 0.1s ease-in-out',
               transform: 'scale(1)'
             }}
-            // TACTILE FEEDBACK: Squish slightly when pressed
             onMouseDown={(e) => { if (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i)) e.currentTarget.style.transform = 'scale(0.95)'; }}
             onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            // For touch devices
             onTouchStart={(e) => { if (gameState.isTrayUnlocked && !gameState.revealedSlots.includes(i)) e.currentTarget.style.transform = 'scale(0.95)'; }}
             onTouchEnd={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
           >

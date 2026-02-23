@@ -4,21 +4,39 @@ import { socket } from '../utils/socket';
 export default function AdminView() {
   const [allClients, setAllClients] = useState([]);
   const [allRooms, setAllRooms] = useState({});
-  const [activeTab, setActiveTab] = useState('STREAMS'); // Default to Stream tab
+  const [activeTab, setActiveTab] = useState('STREAMS'); 
   const [newRoomCode, setNewRoomCode] = useState('');
   const [streamSelections, setStreamSelections] = useState({});
+  
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [securityMsg, setSecurityMsg] = useState({ text: '', type: '' });
 
   useEffect(() => {
-    const handleRegistryUpdate = (registry) => setAllClients(registry);
-    const handleRoomsUpdate = (roomsData) => setAllRooms(roomsData);
+    // Fallback to empty arrays/objects to guarantee the app never crashes on undefined data
+    const handleRegistryUpdate = (registry) => setAllClients(registry || []);
+    const handleRoomsUpdate = (roomsData) => setAllRooms(roomsData || {});
     
     socket.on('REGISTRY_UPDATE', handleRegistryUpdate);
     socket.on('ROOMS_UPDATE', handleRoomsUpdate);
     socket.emit('REQUEST_REGISTRY');
     
+    socket.on('PASSWORD_CHANGED_SUCCESS', (msg) => {
+      setSecurityMsg({ text: msg, type: 'success' });
+      setOldPassword(''); setNewPassword('');
+      setTimeout(() => setSecurityMsg({ text: '', type: '' }), 3000);
+    });
+    
+    socket.on('PASSWORD_CHANGED_FAILED', (msg) => {
+      setSecurityMsg({ text: msg, type: 'error' });
+      setTimeout(() => setSecurityMsg({ text: '', type: '' }), 3000);
+    });
+    
     return () => {
       socket.off('REGISTRY_UPDATE', handleRegistryUpdate);
       socket.off('ROOMS_UPDATE', handleRoomsUpdate);
+      socket.off('PASSWORD_CHANGED_SUCCESS');
+      socket.off('PASSWORD_CHANGED_FAILED');
     };
   }, []);
 
@@ -27,8 +45,10 @@ export default function AdminView() {
   const handleCreateRoom = (e) => {
     e.preventDefault();
     if (newRoomCode.trim()) {
-      socket.emit('CREATE_ROOM', newRoomCode.trim());
+      const formattedRoomCode = newRoomCode.trim().toUpperCase();
+      socket.emit('CREATE_ROOM', formattedRoomCode);
       setNewRoomCode('');
+      setActiveTab(formattedRoomCode); // Auto-focus the new tab
     }
   };
 
@@ -51,53 +71,51 @@ export default function AdminView() {
     }
   };
 
+  // Safe destructuring that won't crash if the room hasn't arrived from the server yet
   const activeGameState = allRooms[activeTab]?.gameState;
-  const isDraftActive = activeGameState?.status === 'IN_PROGRESS';
-
-  // MASTER LOCK: If the room is not in 'PENDING', the tournament has started or finished.
   const isGameLocked = activeGameState && activeGameState.status !== 'PENDING';
 
-  return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif', color: '#111827' }}>
-      
-      {/* GLOBAL HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #e5e7eb', paddingBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>Super Admin Dashboard</h2>
-        
-        <form onSubmit={handleCreateRoom} style={{ display: 'flex', gap: '10px' }}>
-          <input 
-            type="text" value={newRoomCode} onChange={(e) => setNewRoomCode(e.target.value.toUpperCase())}
-            placeholder="New Table Name"
-            style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', textTransform: 'uppercase' }} required
-          />
-          <button type="submit" style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-            + Create Table
-          </button>
-        </form>
-      </div>
+  // ==========================================
+  // MODULAR RENDERER: Eliminates ternary crashes
+  // ==========================================
+  const renderTabContent = () => {
+    if (activeTab === 'SECURITY') {
+      return (
+        <div style={{ backgroundColor: '#1f2937', padding: '30px', borderRadius: '8px', border: '1px solid #374151', maxWidth: '600px' }}>
+          <h2 style={{ marginTop: 0, color: '#ef4444' }}>Security Settings</h2>
+          <p style={{ color: '#9ca3af', marginBottom: '25px' }}>Change the master tournament password. This will immediately update the encrypted local storage.</p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <input 
+              type="password" placeholder="Current Password" 
+              value={oldPassword} onChange={(e) => setOldPassword(e.target.value)}
+              style={{ padding: '12px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#111827', color: 'white', fontSize: '16px' }}
+            />
+            <input 
+              type="password" placeholder="New Password" 
+              value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+              style={{ padding: '12px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#111827', color: 'white', fontSize: '16px' }}
+            />
+            <button 
+              onClick={() => socket.emit('CHANGE_PASSWORD', { oldPassword, newPassword })}
+              disabled={!oldPassword || newPassword.length < 4}
+              style={{ padding: '12px 20px', backgroundColor: (!oldPassword || newPassword.length < 4) ? '#374151' : '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: (!oldPassword || newPassword.length < 4) ? 'not-allowed' : 'pointer', fontSize: '16px', fontWeight: 'bold', marginTop: '10px' }}
+            >
+              Update Master Password
+            </button>
+          </div>
+          
+          {securityMsg.text && (
+            <div style={{ marginTop: '20px', padding: '10px', backgroundColor: securityMsg.type === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: securityMsg.type === 'success' ? '#10b981' : '#ef4444', borderRadius: '6px', border: `1px solid ${securityMsg.type === 'success' ? '#10b981' : '#ef4444'}`, textAlign: 'center', fontWeight: 'bold' }}>
+              {securityMsg.text}
+            </div>
+          )}
+        </div>
+      );
+    }
 
-      {/* TAB NAVIGATION */}
-      <div style={{ display: 'flex', gap: '5px', borderBottom: '2px solid #e5e7eb', marginBottom: '20px', overflowX: 'auto' }}>
-        <button
-          onClick={() => setActiveTab('STREAMS')}
-          style={{ padding: '10px 20px', backgroundColor: activeTab === 'STREAMS' ? '#8b5cf6' : '#f3f4f6', color: activeTab === 'STREAMS' ? 'white' : '#4b5563', border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: 'bold', marginRight: '10px' }}
-        >
-          📡 Stream Overlays
-        </button>
-
-        {Object.keys(allRooms).map(roomCode => (
-          <button
-            key={roomCode}
-            onClick={() => setActiveTab(roomCode)}
-            style={{ padding: '10px 20px', backgroundColor: activeTab === roomCode ? '#3b82f6' : '#f3f4f6', color: activeTab === roomCode ? 'white' : '#4b5563', border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            {roomCode}
-          </button>
-        ))}
-      </div>
-
-      {/* TAB CONTENT */}
-      {activeTab === 'STREAMS' ? (
+    if (activeTab === 'STREAMS') {
+      return (
         <div>
           <h3>Global Stream Management</h3>
           <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -130,7 +148,7 @@ export default function AdminView() {
                           style={{ padding: '6px', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         >
                           <option value="" disabled>Select Table...</option>
-                          {Object.keys(allRooms).map(room => <option key={room} value={room}>{room}</option>)}
+                          {Object.keys(allRooms || {}).map(room => <option key={room} value={room}>{room}</option>)}
                         </select>
                         <button 
                           onClick={() => socket.emit('VERIFY_STREAM', { targetSocketId: client.id, targetRoomId: streamSelections[client.id] })}
@@ -155,7 +173,11 @@ export default function AdminView() {
             </tbody>
           </table>
         </div>
-      ) : activeTab && activeGameState ? (
+      );
+    }
+
+    if (activeTab && activeGameState) {
+      return (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h3 style={{ margin: 0 }}>Table: {activeTab} ({activeGameState.status})</h3>
@@ -223,16 +245,78 @@ export default function AdminView() {
                 </tbody>
               </table>
             </div>
-
+			
             <div style={{ backgroundColor: '#1f2937', color: '#10b981', padding: '20px', borderRadius: '8px', fontSize: '12px', maxHeight: '500px', overflowY: 'auto' }}>
               <h4 style={{ color: 'white', marginTop: 0 }}>Live Table State</h4>
               <pre>{JSON.stringify(activeGameState, null, 2)}</pre>
             </div>
           </div>
         </>
-      ) : (
-        <div style={{ textAlign: 'center', marginTop: '50px', color: '#6b7280' }}>Select a table or create a new one to begin management.</div>
-      )}
+      );
+    }
+
+    // Fallback while waiting for the server to confirm the new room
+    return (
+      <div style={{ textAlign: 'center', marginTop: '50px', color: '#6b7280' }}>
+        Loading table data...
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif', color: '#111827' }}>
+      
+      {/* GLOBAL HEADER */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #e5e7eb', paddingBottom: '20px' }}>
+        <h2 style={{ margin: 0 }}>Super Admin Dashboard</h2>
+        
+        <form onSubmit={handleCreateRoom} style={{ display: 'flex', gap: '10px' }}>
+          <input 
+            type="text" value={newRoomCode} onChange={(e) => setNewRoomCode(e.target.value.toUpperCase())}
+            placeholder="New Table Name"
+            style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', textTransform: 'uppercase' }} required
+          />
+          <button type="submit" style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+            + Create Table
+          </button>
+        </form>
+      </div>
+
+      {/* TAB NAVIGATION */}
+      <div style={{ display: 'flex', gap: '5px', borderBottom: '2px solid #e5e7eb', marginBottom: '20px', overflowX: 'auto' }}>
+        <button 
+          onClick={() => setActiveTab('SECURITY')}
+          style={{ 
+            padding: '10px 20px', 
+            backgroundColor: activeTab === 'SECURITY' ? '#ef4444' : '#374151', 
+            color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer',
+            marginLeft: 'auto' 
+          }}
+        >
+          🔒 Security
+        </button>
+        <button
+          onClick={() => setActiveTab('STREAMS')}
+          style={{ padding: '10px 20px', backgroundColor: activeTab === 'STREAMS' ? '#8b5cf6' : '#f3f4f6', color: activeTab === 'STREAMS' ? 'white' : '#4b5563', border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: 'bold', marginRight: '10px' }}
+        >
+          📡 Stream Overlays
+        </button>
+        
+        {/* Safely map over the existing rooms */}
+        {Object.keys(allRooms || {}).map(roomCode => (
+          <button
+            key={roomCode}
+            onClick={() => setActiveTab(roomCode)}
+            style={{ padding: '10px 20px', backgroundColor: activeTab === roomCode ? '#3b82f6' : '#f3f4f6', color: activeTab === roomCode ? 'white' : '#4b5563', border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            {roomCode}
+          </button>
+        ))}
+      </div>
+
+      {/* INJECT THE MODULAR CONTENT HERE */}
+      {renderTabContent()}
+
     </div>
   );
 }
