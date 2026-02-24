@@ -2,24 +2,12 @@
 
 A professional-grade, multi-table draft management system for Classic Mafia.
 
-### 🚀 Major Features
-* **Encrypted State Recovery:** Tournament data is now continuously backed up to disk. If the server crashes, simply restart it and pick up exactly where you left off.
-* **Live Password Rotation:** Admins can securely change the master tournament password directly from the web dashboard.
-* **Smart Disconnect Handling:** If a player, judge, or admin refreshes their browser, the server instantly recognizes their device and restores their exact table and role.
-* **Cinematic Stream Overlays:** Transparent OBS overlays are fully synced and feature an "Audience Protection Timer" to guarantee legibility.
-
-### 🐛 Bug Fixes
-* Fixed a race condition that caused the Admin dashboard to crash (white screen) when rapidly creating new tables.
-* Fixed an Express 5 routing error that caused the static Vite build to fail on refresh.
-* Fixed a `nodemon` development loop where saving tournament data would trigger an accidental server reboot.
-* Fixed a bug where the `CREATE_ROOM` command would silently fail if an Admin refreshed their page.
-
 ### ⚙️ Installation & Deployment
 1. Clone the repository.
 2. Run `npm install` in both the `/client` and `/server` directories.
 3. Build the frontend for production: `cd client && npm run build`
 4. Start the server: `cd server && npm run start`
-5. Follow the terminal prompts to create your encrypted master password!
+5. Open your browser to the provided local address (e.g., `http://localhost:3000`) and complete the web-based initialization to securely create your master password!
 
 ## 📡 Room Management
 - **Admins** create tables (e.g., "Table 1", "Finals") via the Dashboard.
@@ -34,6 +22,20 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.1.1a Patch: Authentic Deck Assets**
+- **Premium Visuals:** Replaced the temporary placeholder role art with actual, high-quality scans of a physical Classic Mafia deck.
+
+**v0.1.1: The Visuals & QoL Update**
+This update replaces prototype UI with custom visuals and fixes several core persistence bugs.
+
+**Key Additions & Fixes:**
+- **Web-Based Initialization:** Moved the initial master password setup from the buggy Node terminal to a sleek, intercepted React web UI (`/setup`).
+- **High-Fidelity Assets:** Replaced CSS-colored squares with a customizable local asset pipeline (`public/roles/`), featuring proportional 2.5x3.5 cards.
+- **Stream Layout Controls:** Admins can now dynamically align individual stream overlays to the Left, Center, or Right thirds of the screen for seamless OBS integration.
+- **Flawless Session Memory:** Fixed a bug where device sessions were kept in volatile memory; player and admin devices are now safely written to `store.json` and survive complete server reboots.
+- **Responsive Player Grid:** The Player View now utilizes a strict mathematical CSS grid that maintains a perfect 5-column layout on desktop/tablets and scales cleanly to 2 columns on mobile.
+- **Server QoL Commands:** Added `status`, `restart`, `shutdown`, and `reset` commands to the backend terminal for live tournament administration.
 
 **v0.1.0 Beta: The Persistence & Security Update**
 This major update transforms the application from a volatile memory script into a production-ready tournament server. 
@@ -53,8 +55,7 @@ This major update transforms the application from a volatile memory script into 
 - **Audience Protection Timer:** The Stream Overlay now operates independently of the player's reading speed. If a player dismisses their role instantly, the stream strictly holds the 3D card on the OBS broadcast for a minimum of 2.5 seconds to guarantee audience legibility.
 - **Streamlined Player UX:** Removed the "Confirm Pick" dialog. Cards now register picks instantly on tap and feature a CSS scale "squish" effect for immediate tactile feedback.
 - **Dynamic Judge Controls:** The Judge's "Force Pick" button now dynamically transforms into a red "Close Card" button whenever a role is actively displayed. This allows the Judge to remotely dismiss a card on the player's tablet and stream overlay if a player walks away.
-- **Race Condition Guardrails:** 
-	1. The server strictly rejects delayed FORCE_PICK commands if the player has already manually tapped a card while the Judge's confirmation popup was open.
+- **Race Condition Guardrails:** 1. The server strictly rejects delayed FORCE_PICK commands if the player has already manually tapped a card while the Judge's confirmation popup was open.
 	2. The Stream Overlay relies purely on explicit CLEAR_STREAM signals rather than inferring closures from trailing state updates.
 
 **v0.0.3 Alpha: Tournament Reveal and Security**
@@ -78,3 +79,12 @@ This major update transforms the application from a volatile memory script into 
 - **LAN Optimization:** Vite and Node.js are configured to broadcast over the local network (0.0.0.0), allowing any tablet or smartphone on the same Wi-Fi to participate.
 
 **v0.0.1 Alpha:** Basic MVP
+
+## 📝 Credits & Acknowledgements
+
+**Project Architecture & Engineering:** Dany "Nolan" Khomich
+**Original Mafia Game Concept:** Dmitry Davidoff (1986)
+**Current Classic Mafia Rules:** FIIM (2013), 
+
+**AI Assistance Disclaimer:**
+This project was developed with the assistance of AI (Google Gemini). The AI was utilized as a pair-programming partner for syntax generation, debugging complex state race-conditions, and optimizing CSS Grid layouts. All core application logic, security architecture, and system design decisions were directed and reviewed by the human developer.

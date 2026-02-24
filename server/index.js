@@ -3,7 +3,7 @@
  * @description Core backend server for the Classic Mafia Draft App.
  * Handles WebSocket routing, state synchronization, persistent storage, 
  * and secure tournament administration.
- * @version 0.1.1
+ * @version 0.1.1a
  */
 
 import express from 'express';
