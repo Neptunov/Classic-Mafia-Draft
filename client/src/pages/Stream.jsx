@@ -6,8 +6,12 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { socket, deviceId } from '../utils/socket';
+import { en } from '../locales/en';
+import '../App.css'; // Import our standard theme variables
 
 export default function StreamView() {
+  const text = en.stream; // Localization dictionary
+
   const [isVerified, setIsVerified] = useState(false);
   const [clientIp, setClientIp] = useState('Detecting network IP...');
   const [gameState, setGameState] = useState(null);
@@ -42,11 +46,11 @@ export default function StreamView() {
     socket.on('STATE_UPDATE', handleStateUpdate);
     socket.on('STREAM_IP', setClientIp);
     socket.on('CLEAR_STREAM', () => setClearSignal(prev => prev + 1));
-	socket.on('UPDATE_LAYOUT', (newLayout) => {
-	  if (newLayout === 'LEFT') setLayout('flex-start');
-	  else if (newLayout === 'RIGHT') setLayout('flex-end');
-	  else setLayout('center');
-	});
+    socket.on('UPDATE_LAYOUT', (newLayout) => {
+      if (newLayout === 'LEFT') setLayout('flex-start');
+      else if (newLayout === 'RIGHT') setLayout('flex-end');
+      else setLayout('center');
+    });
     
     return () => {
       socket.off('ROLE_ASSIGNED'); socket.off('CARD_REVEALED');
@@ -100,20 +104,22 @@ export default function StreamView() {
   };
 
 
+  // --- UNVERIFIED / WAITING STATE ---
   if (!isVerified) {
     return (
-      <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111827', color: 'white', fontFamily: 'sans-serif', textAlign: 'center' }}>
-        <h2 style={{ color: '#3b82f6', marginBottom: '10px' }}>Stream Source Connected</h2>
-        <p style={{ color: '#9ca3af', marginBottom: '20px' }}>Waiting for Admin to assign a table...</p>
+      <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-black)', color: 'var(--text-white)', fontFamily: 'sans-serif', textAlign: 'center' }}>
+        <h2 style={{ color: 'var(--accent-gold)', marginBottom: '10px' }}>{text.title}</h2>
+        <p style={{ color: '#888', marginBottom: '20px' }}>{text.subtitle}</p>
         
-        <div style={{ backgroundColor: '#1f2937', padding: '15px 30px', borderRadius: '8px', border: '1px solid #374151' }}>
-          <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px' }}>Source IP Address</p>
-          <p style={{ margin: '5px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>{clientIp}</p>
+        <div style={{ backgroundColor: 'var(--surface-black)', padding: '15px 30px', borderRadius: '8px', border: '1px solid #333' }}>
+          <p style={{ margin: 0, fontSize: '14px', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>{text.ipLabel}</p>
+          <p style={{ margin: '5px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: 'var(--accent-red)' }}>{clientIp}</p>
         </div>
       </div>
     );
   }
 
+  // --- LIVE STREAM STATE ---
   return (
     <div style={{ 
       width: '100vw', height: '100vh', 
@@ -141,32 +147,48 @@ export default function StreamView() {
            perspective: 1000px; margin-bottom: 25px; 
            animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
         }
+        
         .stream-card-inner {
           position: relative; width: 100%; height: 100%; text-align: center;
           transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
           transform-style: preserve-3d;
           transform: ${isFlipping ? 'rotateY(180deg)' : 'rotateY(0deg)'};
         }
+        
         .stream-card-front, .stream-card-back {
           position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
-          border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: bold;
+          border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: bold;
           box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         }
+        
         .stream-card-front { 
-		  background-image: url('/roles/card-back.jpg'); 
-		  background-size: cover; background-position: center; 
-		  border: 6px solid #3b82f6; 
-		}
-		.stream-card-back {
-		  transform: rotateY(180deg); 
-		  background-image: url('/roles/${currentReveal?.role?.toLowerCase()}.jpg');
-		  background-size: cover; background-position: center;
-		  border: 6px solid white;
-		}
+          background-image: url('/roles/card-back.jpg'); 
+          background-size: cover; background-position: center; 
+          border: 2px solid #333; 
+        }
+        
+        .stream-card-back {
+          transform: rotateY(180deg); 
+          background-image: url('/roles/${currentReveal?.role?.toLowerCase()}.jpg');
+          background-size: cover; background-position: center;
+          border: 2px solid var(--accent-red);
+        }
+        
         .seat-badge {
-          background-color: #fbbf24; color: black; padding: 12px 40px; border-radius: 50px;
-          font-size: 28px; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-          text-transform: uppercase; letter-spacing: 3px; animation: dropIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          width: 300px; /* Locked to exactly match the card width */
+          box-sizing: border-box;
+          background-color: var(--surface-black);
+          color: var(--accent-gold); 
+          padding: 15px 0; 
+          border-radius: 8px; /* Standardized to match our UI */
+          border: 1px solid #333;
+          font-size: 24px; 
+          font-weight: bold; 
+          text-align: center;
+          box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+          text-transform: uppercase; 
+          letter-spacing: 3px; 
+          animation: dropIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
       `}</style>
 
@@ -180,7 +202,7 @@ export default function StreamView() {
           </div>
 
           <div className="seat-badge">
-            SEAT {currentReveal.seat}
+            {text.seat.replace('{number}', currentReveal.seat)}
           </div>
         </>
       )}

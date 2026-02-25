@@ -33,6 +33,13 @@ The application is currently in the pre-release development phase, focusing on i
 
 ## 📝 Changelog
 
+**v0.1.5: Stream Overlay & Setup Polish**
+- Overhauled the Stream overlay (`Stream.jsx`) to utilize the standard tournament dark-theme palette.
+- Standardized the stream seat indicator to precisely match the active card's width.
+- Refactored the Setup screen (`Setup.jsx`) to use global responsive card classes for a uniform initialization experience.
+- Replaced static text in both views with locale dictionary references (`en.js`) for future internationalization.
+- Renamed all updated view component files to standard component naming conventions (e.g., `SetupView.jsx` -> `Setup.jsx`).
+
 **v0.1.4: Judge View Tracking UI**
 - Overhauled the moderator panel into a responsive, dual-column layout.
 - Replaced the variable grid with a strict 1-10 list format for professional role tracking.

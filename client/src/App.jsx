@@ -11,12 +11,12 @@ import { socket, deviceId } from './utils/socket';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import LobbyView from './pages/Lobby';
-import LoginView from './pages/LoginView';
+import LoginView from './pages/Login';
 import AdminView from './pages/AdminView';
-import JudgeView from './pages/JudgeView';
+import JudgeView from './pages/Judge';
 import PlayerView from './pages/PlayerView';
-import StreamView from './pages/StreamView';
-import SetupView from './pages/SetupView';
+import StreamView from './pages/Stream';
+import SetupView from './pages/Setup';
 
 function AppContent() {
   const [gameState, setGameState] = useState(null);
@@ -66,7 +66,7 @@ function AppContent() {
     };
   }, [navigate]);
   
-  const isNewUI = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/judge';
+  const isNewUI = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/judge'|| location.pathname === '/stream';
   
   return (
     <>
