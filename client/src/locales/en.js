@@ -20,5 +20,38 @@ export const en = {
     connected: "Connected",
     disconnected: "Disconnected",
     debugActive: "Debug Mode Active"
+  },
+  login: {
+    title: "Admin Portal",
+    subtitle: "Authorized personnel only",
+    passwordLabel: "Master Password",
+    passwordPlaceholder: "Enter master password",
+    authButton: "Authenticate",
+    returnButton: "Return to Lobby",
+    defaultError: "Invalid Password",
+    connected: "Connected",
+    disconnected: "Disconnected",
+    debugActive: "Debug Mode Active"
+  },
+  judge: {
+    title: "Moderator Panel",
+    players: "Players: {count}/10",
+    judges: "Judges: {count}",
+    statusPending: "Status: PENDING",
+    statusInProgress: "Status: DRAFTING",
+    statusCompleted: "Status: COMPLETED",
+    lockRoles: "Lock Roles",
+    unlockRoles: "Unlock Roles",
+    startDraft: "Start Draft",
+    unlockTray: "Unlock Tray",
+    forcePick: "Force Random Pick",
+    forcePickConfirm: "Are you sure you want to force a random pick for the current seat?",
+    closeCard: "Close Active Card",
+    resetDraft: "Reset Draft",
+    seat: "Seat {number}",
+    emptySeat: "Waiting...",
+    connected: "Connected",
+    disconnected: "Disconnected",
+    debugActive: "Debug Mode Active"
   }
 };

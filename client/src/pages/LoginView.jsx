@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { Wifi, ShieldAlert, Lock, ArrowLeft } from 'lucide-react';
 import { socket } from '../utils/socket';
 import { useAuth } from '../utils/AuthContext';
+import { en } from '../locales/en';
 import packageJson from '../../package.json';
 import '../App.css'; 
 import './Lobby.css'; 
@@ -16,11 +17,12 @@ import './Lobby.css';
 const LoginView = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const text = en.login; // Shortcut for the dictionary
   
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isConnected, setIsConnected] = useState(socket.connected);
-  const [isDebugMode, setIsDebugMode] = useState(false); // Can sync with global state if needed
+  const [isDebugMode, setIsDebugMode] = useState(false); 
 
   useEffect(() => {
     const onConnect = () => setIsConnected(true);
@@ -44,10 +46,10 @@ const LoginView = () => {
     socket.emit('ADMIN_LOGIN', password, (response) => {
       if (response.success) {
         setPassword('');
-		login();
+        login(); 
         navigate('/admin');
       } else {
-        setErrorMsg(response.message || 'Invalid Password');
+        setErrorMsg(response.message || text.defaultError);
         setPassword(''); 
       }
     });
@@ -56,19 +58,19 @@ const LoginView = () => {
   return (
     <div className="lobby-container">
       
-      {/* HEADER (Same as Lobby) */}
+      {/* HEADER */}
       <header className="lobby-header">
         <div className="status-indicator">
           <Wifi color={isConnected ? "var(--text-white)" : "var(--accent-red)"} size={20} />
           <span style={{ color: isConnected ? "var(--text-white)" : "var(--accent-red)" }}>
-            {isConnected ? "Connected" : "Disconnected"}
+            {isConnected ? text.connected : text.disconnected}
           </span>
         </div>
         
         {isDebugMode && (
           <div className="debug-mode">
             <ShieldAlert size={20} />
-            <span>Debug Mode Active</span>
+            <span>{text.debugActive}</span>
           </div>
         )}
       </header>
@@ -78,14 +80,14 @@ const LoginView = () => {
         <div className="login-card">
           
           <div className="login-header">
-            <h2>Admin Portal</h2>
-            <p>Authorized personnel only</p>
+            <h2>{text.title}</h2>
+            <p>{text.subtitle}</p>
           </div>
           
           <form onSubmit={handleAdminLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             <div className="input-group">
-              <label htmlFor="adminPassword">Master Password</label>
+              <label htmlFor="adminPassword">{text.passwordLabel}</label>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
                 <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
                 <input 
@@ -93,11 +95,11 @@ const LoginView = () => {
                   id="adminPassword"
                   className="login-input" 
                   style={{ paddingLeft: '2.5rem', borderColor: errorMsg ? 'var(--accent-red)' : '' }}
-                  placeholder="Enter master password"
+                  placeholder={text.passwordPlaceholder}
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    setErrorMsg('');
+                    setErrorMsg(''); 
                   }}
                   autoComplete="current-password"
                   required
@@ -111,7 +113,7 @@ const LoginView = () => {
             </div>
             
             <button type="submit" className="primary-btn">
-              Authenticate
+              {text.authButton}
             </button>
 
             <button 
@@ -130,7 +132,7 @@ const LoginView = () => {
               }}
             >
               <ArrowLeft size={16} />
-              Return to Lobby
+              {text.returnButton}
             </button>
 
           </form>
@@ -139,7 +141,7 @@ const LoginView = () => {
       </main>
 
       {/* FOOTER */}
-      <footer className="lobby-footer">
+      <footer className="lobby-footer" style={{ justifyContent: 'center' }}>
         <span className="version-text">v{packageJson.version}</span>
       </footer>
       
