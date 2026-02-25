@@ -53,5 +53,24 @@ export const en = {
     connected: "Connected",
     disconnected: "Disconnected",
     debugActive: "Debug Mode Active"
+  },
+  stream: {
+    title: "Stream Source Connected",
+    subtitle: "Waiting for Admin to assign a table...",
+    ipLabel: "Source IP Address",
+    seat: "Seat {number}"
+  },
+  setup: {
+    title: "Tournament Initialization",
+    subtitle: "Create a master administrative password to secure your live tournament.",
+    passLabel: "New Master Password",
+    passPlaceholder: "Enter new password",
+    confirmLabel: "Confirm Password",
+    confirmPlaceholder: "Re-enter password",
+    submitButton: "Secure Server",
+    errorLength: "Password must be at least 4 characters long.",
+    errorMatch: "Passwords do not match.",
+    connected: "Connected",
+    disconnected: "Disconnected"
   }
 };
