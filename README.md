@@ -31,6 +31,16 @@ The application is currently in the pre-release development phase, focusing on i
 
 ## 📝 Changelog
 
+**v0.2.0: The Admin Console Update**
+- Completely overhauled the Super Admin Dashboard (`Admin.jsx`) into a responsive sidebar architecture.
+- Added live Overview Plates featuring dynamic draft timers and multi-table synchronization.
+- Centralized the Security and Stream Management modules into global tabs.
+- Implemented global `isDebugMode` toggle.
+- Added a unified Connected Devices interface with IP tracking and integrated single-mode seat assignments.
+- Engineered a Phantom Player generation system for testing rigid tournament constraints.
+- Integrated a live Mini-Tray and Judge Results board into the detailed room management view.
+- Added strict 10-player validation lock-outs for Single Mode tournament configurations.
+
 **v0.1.6: Interactive Player Tray Overhaul**
 - Completely redesigned the Player draft tray (`Player.jsx`) with a dynamic flex-grid architecture that automatically scales from a 2-row layout to a 1-row layout as cards are drawn.
 - Implemented a high-resolution velvet texture background with dynamic CSS drop-shadows to create a physical, floating card illusion.
