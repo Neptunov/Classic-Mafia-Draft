@@ -1,0 +1,108 @@
+/**
+ * @file src/pages/Judge.css
+ * @description Responsive layout and strict color-coding rules for the Judge View.
+ */
+
+.judge-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* --- RESPONSIVE DESKTOP LAYOUT --- */
+@media (min-width: 1024px) {
+  .judge-container {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  
+  .judge-controls-sidebar {
+    flex: 1;
+    position: sticky;
+    top: 2rem;
+  }
+  
+  .judge-tracking-list {
+    flex: 2;
+  }
+}
+
+/* --- CONTROLS SIDEBAR --- */
+.judge-header {
+  margin-bottom: 1.5rem;
+}
+
+.judge-header h2 {
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 0.5rem;
+}
+
+.judge-stats {
+  display: flex;
+  gap: 1.5rem;
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.controls-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* --- TRACKING LIST (1-10) --- */
+.seat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: var(--surface-black);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.seat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.5rem;
+  height: 56px; /* Guaranteed equal size for every row */
+  border-radius: 4px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  transition: background-color 0.3s ease;
+}
+
+/* --- TEAM BACKGROUND COLORS --- */
+.bg-empty {
+  background-color: #1a1a1a;
+  border: 1px dashed #444;
+  color: #666;
+}
+
+.bg-town {
+  background-color: var(--accent-red);
+  border: 1px solid #b71c1c;
+}
+
+.bg-mafia {
+  background-color: #000000;
+  border: 1px solid #333;
+}
+
+/* --- ROLE TEXT COLORS --- */
+.text-regular {
+  color: var(--text-white);
+}
+
+.text-special {
+  color: var(--accent-gold);
+}

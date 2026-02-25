@@ -3,6 +3,7 @@
  * @description Root frontend application component. 
  * Manages global application state, socket connections, and view routing based on assigned roles.
  */
+ 
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './utils/AuthContext';
@@ -65,7 +66,7 @@ function AppContent() {
     };
   }, [navigate]);
   
-  const isNewUI = location.pathname === '/' || location.pathname === '/login';
+  const isNewUI = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/judge';
   
   return (
     <>

@@ -1,114 +1,199 @@
 /**
- * @file JudgeView.jsx
- * @description The live control panel for the game moderator. 
- * Allows the judge to open the draft tray, force picks for delayed players, and monitor the resulting deck.
+ * @file src/pages/JudgeView.jsx
+ * @description Moderator dashboard for tracking the draft phase.
+ * Features a dynamic 1-10 list with strict team-based color coding.
  */
-import { useState, useEffect } from 'react';
-import { socket } from '../utils/socket';
 
-export default function JudgeView() {
+import React, { useState, useEffect } from 'react';
+import { Shield, ShieldAlert, Users, Play, Unlock, XSquare, RotateCcw, Wifi } from 'lucide-react';
+import { socket } from '../utils/socket';
+import { en } from '../locales/en';
+import packageJson from '../../package.json';
+import '../App.css'; 
+import './Judge.css'; 
+
+const JudgeView = () => {
+  const text = en.judge;
   const [gameState, setGameState] = useState(null);
+  const [isConnected, setIsConnected] = useState(socket.connected);
 
   useEffect(() => {
-    socket.on('STATE_UPDATE', setGameState);
-    return () => socket.off('STATE_UPDATE');
+    const handleStateUpdate = (state) => setGameState(state);
+    const onConnect = () => setIsConnected(true);
+    const onDisconnect = () => setIsConnected(false);
+    
+    socket.on('STATE_UPDATE', handleStateUpdate);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    
+    return () => {
+      socket.off('STATE_UPDATE', handleStateUpdate);
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+    };
   }, []);
 
-  if (!gameState) return <div style={{ padding: '20px', color: 'white', backgroundColor: '#111827', minHeight: '100vh' }}>Connecting...</div>;
+  if (!gameState) return <div className="waiting-container"><div className="waiting-spinner"></div></div>;
 
-  const canStart = gameState.status === 'PENDING' && gameState.areRolesLocked;
-  const isDrafting = gameState.status === 'IN_PROGRESS';
+  // --- COLOR CODING LOGIC ---
+  const getSeatStyles = (role) => {
+    if (!role) return { bg: 'bg-empty', text: '' };
+    
+    const isTown = role === 'Citizen' || role === 'Sheriff';
+    const isSpecial = role === 'Sheriff' || role === 'Don';
+
+    return {
+      bg: isTown ? 'bg-town' : 'bg-mafia',
+      text: isSpecial ? 'text-special' : 'text-regular'
+    };
+  };
+
+  // --- RENDER HELPERS ---
+  const seats = Array.from({ length: 10 }, (_, i) => i + 1);
+  const pCount = gameState.clientCounts?.PLAYER || 0;
+  const jCount = gameState.clientCounts?.JUDGE || 0;
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif', color: 'white', backgroundColor: '#111827', minHeight: '100vh' }}>
+    <div className="lobby-container">
       
-      {gameState.isDebugMode && (
-        <div style={{ backgroundColor: '#dc2626', color: 'white', padding: '10px', textAlign: 'center', fontWeight: 'bold', borderRadius: '8px', marginBottom: '15px' }}>
-          ⚠️ DEBUG MODE ACTIVE: DECK IS VISIBLE TO ADMIN
+      {/* STANDARD HEADER */}
+      <header className="lobby-header">
+        <div className="status-indicator">
+          <Wifi color={isConnected ? "var(--text-white)" : "var(--accent-red)"} size={20} />
+          <span style={{ color: isConnected ? "var(--text-white)" : "var(--accent-red)" }}>
+            {isConnected ? text.connected : text.disconnected}
+          </span>
         </div>
-      )}
-
-      <h2 style={{ borderBottom: '1px solid #374151', paddingBottom: '10px' }}>Judge Control Panel</h2>
-
-      {/* ACTION BUTTONS */}
-      <div style={{ display: 'flex', gap: '15px', margin: '20px 0' }}>
-        {gameState.status === 'PENDING' ? (
-          <button 
-            onClick={() => socket.emit('START_DRAFT')} disabled={!canStart}
-            style={{ flex: 1, padding: '20px', fontSize: '18px', backgroundColor: canStart ? '#10b981' : '#374151', color: 'white', border: 'none', borderRadius: '8px', cursor: canStart ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}
-          >
-            {canStart ? '▶ START DRAFT' : 'WAITING FOR ADMIN LOCK'}
-          </button>
-        ) : (
-          <>
-            <button 
-              onClick={() => socket.emit('UNLOCK_TRAY')} 
-              disabled={!isDrafting || gameState.isTrayUnlocked || gameState.isCardRevealed}
-              style={{ flex: 2, padding: '20px', fontSize: '18px', backgroundColor: (isDrafting && !gameState.isTrayUnlocked && !gameState.isCardRevealed) ? '#3b82f6' : '#374151', color: 'white', border: 'none', borderRadius: '8px', cursor: (isDrafting && !gameState.isTrayUnlocked && !gameState.isCardRevealed) ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}
-            >
-              {gameState.isCardRevealed ? 'WAITING FOR PLAYER TO MEMORIZE...' : (gameState.isTrayUnlocked ? 'TRAY IS UNLOCKED' : `ALLOW PICK (Seat ${gameState.currentTurn})`)}
-            </button>
-            
-            {gameState.isCardRevealed ? (
-              <button 
-                onClick={() => socket.emit('MEMORIZED_ROLE')}
-                style={{ flex: 1, padding: '20px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                CLOSE CARD
-              </button>
-            ) : (
-              <button 
-                onClick={() => { if(window.confirm("Force a random pick?")) socket.emit('FORCE_PICK') }} 
-                disabled={!isDrafting}
-                style={{ flex: 1, padding: '20px', backgroundColor: isDrafting ? '#d97706' : '#374151', color: 'white', border: 'none', borderRadius: '8px', cursor: isDrafting ? 'pointer' : 'not-allowed', fontWeight: 'bold' }}
-              >
-                FORCE PICK
-              </button>
-            )}
-          </>
+        
+        {gameState.isDebugMode && (
+          <div className="debug-mode">
+            <ShieldAlert size={20} />
+            <span>{text.debugActive}</span>
+          </div>
         )}
-      </div>
+      </header>
 
-      <div style={{ backgroundColor: '#1f2937', padding: '20px', borderRadius: '12px' }}>
-        <h3>Draft Progress: {gameState.revealedSlots?.length || 0} / 10</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginTop: '10px' }}>
-          {[...Array(10)].map((_, i) => {
-            const seatNum = i + 1;
-            const result = gameState.results[seatNum];
+      {/* BODY (Using flex: 1 to push the footer to the bottom) */}
+      <div className="judge-container" style={{ flex: 1 }}>
+        
+        {/* LEFT COLUMN: CONTROLS */}
+        <aside className="judge-controls-sidebar">
+          <div className="login-card" style={{ padding: '2rem', maxWidth: '100%' }}>
             
-            let bgColor = '#374151'; 
-            if (result) {
-              if (result.role === 'Citizen') bgColor = '#dc2626'; 
-              else if (result.role === 'Mafia' || result.role === 'Don') bgColor = '#000000'; 
-              else if (result.role === 'Sheriff') bgColor = '#d97706'; 
-            }
-
-            return (
-              <div key={i} style={{ 
-                padding: '10px', textAlign: 'center', backgroundColor: bgColor, borderRadius: '6px', fontSize: '12px',
-                border: result && (result.role === 'Mafia' || result.role === 'Don') ? '1px solid #4b5563' : 'none'
-              }}>
-                Seat {seatNum}<br/>
-                <strong style={{ fontSize: '14px', letterSpacing: '0.5px' }}>
-                  {result ? result.role.toUpperCase() : '---'}
-                </strong>
-                {result && (
-                  <div style={{ fontSize: '10px', marginTop: '5px', opacity: 0.7 }}>
-                    Card #{result.slotIndex + 1}
-                  </div>
-                )}
+            <div className="judge-header">
+              <h2>{text.title}</h2>
+              <div className="judge-stats">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Users size={16} /> {text.players.replace('{count}', pCount)}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Shield size={16} /> {text.judges.replace('{count}', jCount)}
+                </span>
               </div>
-            );
-          })}
-        </div>
+              <p style={{ color: gameState.status === 'COMPLETED' ? 'var(--accent-gold)' : '#aaa' }}>
+                {gameState.status === 'PENDING' ? text.statusPending : 
+                 gameState.status === 'IN_PROGRESS' ? text.statusInProgress : text.statusCompleted}
+              </p>
+            </div>
+
+            <div className="controls-grid">
+
+              {/* 1. START DRAFT */}
+              {gameState.status === 'PENDING' && (
+                <button 
+                  className="primary-btn"
+                  disabled={!gameState.areRolesLocked}
+                  onClick={() => socket.emit('START_DRAFT')}
+                  style={{ opacity: gameState.areRolesLocked ? 1 : 0.5, backgroundColor: '#2e7d32' }}
+                >
+                  <Play size={18} /> {text.startDraft}
+                </button>
+              )}
+
+              {/* 2. UNLOCK TRAY */}
+              {gameState.status === 'IN_PROGRESS' && (
+                <button 
+                  className="primary-btn" 
+                  disabled={gameState.isTrayUnlocked || gameState.isCardRevealed}
+                  onClick={() => socket.emit('UNLOCK_TRAY')}
+                  style={{ opacity: (gameState.isTrayUnlocked || gameState.isCardRevealed) ? 0.5 : 1 }}
+                >
+                  <Unlock size={18} /> {text.unlockTray}
+                </button>
+              )}
+
+              {/* 3. DYNAMIC BUTTON: FORCE PICK or CLOSE CARD */}
+              {gameState.status === 'IN_PROGRESS' && (
+                <>
+                  {gameState.isCardRevealed ? (
+                    <button 
+                      className="primary-btn" 
+                      onClick={() => socket.emit('MEMORIZED_ROLE')}
+                    >
+                      <XSquare size={18} /> {text.closeCard}
+                    </button>
+                  ) : (
+                    <button 
+                      className="primary-btn" 
+                      disabled={!gameState.isTrayUnlocked}
+                      onClick={() => {
+                        if (window.confirm(text.forcePickConfirm)) {
+                          socket.emit('FORCE_PICK');
+                        }
+                      }}
+                      style={{ backgroundColor: '#1976d2', opacity: gameState.isTrayUnlocked ? 1 : 0.5 }}
+                    >
+                      <ShieldAlert size={18} /> {text.forcePick}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* 4. RESET DRAFT */}
+              <button 
+                className="primary-btn" 
+                onClick={() => {
+                  if(window.confirm("Reset entire draft?")) socket.emit('RESET_DRAFT');
+                }}
+                style={{ backgroundColor: '#333', marginTop: '1rem' }}
+              >
+                <RotateCcw size={18} /> {text.resetDraft}
+              </button>
+            </div>
+            
+          </div>
+        </aside>
+
+        {/* RIGHT COLUMN: 1-10 TRACKING LIST */}
+        <main className="judge-tracking-list">
+          <div className="seat-list">
+            {seats.map((seatNum) => {
+              const drawData = gameState.results ? gameState.results[seatNum] : null;
+              const role = drawData ? drawData.role : null;
+              const styles = getSeatStyles(role);
+
+              return (
+                <div key={seatNum} className={`seat-row ${styles.bg}`}>
+                  <span>{text.seat.replace('{number}', seatNum)}</span>
+                  
+                  <span className={styles.text}>
+                    {role ? role : text.emptySeat}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </main>
+
       </div>
 
-      <button 
-        onClick={() => { if(window.confirm("Reset entire draft?")) socket.emit('RESET_DRAFT') }}
-        style={{ marginTop: '30px', width: '100%', padding: '10px', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', cursor: 'pointer' }}
-      >
-        Reset Draft
-      </button>
+      {/* STANDARD FOOTER */}
+      <footer className="lobby-footer" style={{ justifyContent: 'center' }}>
+        <span className="version-text">v{packageJson.version}</span>
+      </footer>
+
     </div>
   );
-}
+};
+
+export default JudgeView;
