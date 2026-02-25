@@ -65,17 +65,17 @@ function AppContent() {
     };
   }, [navigate]);
   
-  const isLobbyView = location.pathname === '/';
+  const isNewUI = location.pathname === '/' || location.pathname === '/login';
   
   return (
     <>
-      {!isLobbyView && gameState?.isDebugMode && (
+      {!isNewUI && gameState?.isDebugMode && (
         <div style={{ backgroundColor: '#dc2626', color: 'white', textAlign: 'center', padding: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
           Warning: Debug Mode Active. Deck is Exposed.
         </div>
       )}
 
-      {!isLobbyView && !isConnected && (
+      {!isNewUI && !isConnected && (
         <div style={{ backgroundColor: '#fef2f2', color: '#991b1b', textAlign: 'center', padding: '8px', borderBottom: '1px solid #fecaca' }}>
           Server Disconnected. Attempting to reconnect...
         </div>
@@ -83,8 +83,8 @@ function AppContent() {
 
       {/* Conditionally apply the legacy wrapper and padding */}
       <div 
-        className={!isLobbyView ? "legacy-view" : ""} 
-        style={{ padding: isLobbyView ? '0px' : '20px' }}
+        className={!isNewUI ? "legacy-view" : ""} 
+        style={{ padding: isNewUI ? '0px' : '20px' }}
       >
         {isSetupRequired ? (
           <SetupView />

@@ -30,6 +30,11 @@ const packageJsonPath = path.join(__dirname, 'package.json');
 const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 const APP_VERSION = packageData.version;
 
+// --- MANUAL DATA SCHEMA TRIGGER ---
+// Increment this integer manually ONLY when you change the structure of store.json.
+// The server will safely wipe old data if this doesn't match the file's schemaVersion.
+const DATA_SCHEMA_VERSION = 1;
+
 let adminCredentials = null;
 let rooms = {};  
 let sessions = {};    
@@ -50,9 +55,10 @@ function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
 function saveState() {
   const data = {
     version: APP_VERSION,
+    schemaVersion: DATA_SCHEMA_VERSION,
     admin: adminCredentials,
     rooms: rooms,
-    sessions: sessions // <-- NEW: Save device memory to disk
+    sessions: sessions 
   };
   fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2));
 }
@@ -579,13 +585,20 @@ if (fs.existsSync(STORE_FILE)) {
     const rawData = fs.readFileSync(STORE_FILE, 'utf8');
     const parsed = JSON.parse(rawData);
     
-    if (parsed.version === APP_VERSION) {
+    if (parsed.schemaVersion === DATA_SCHEMA_VERSION) {
       adminCredentials = parsed.admin;
       rooms = parsed.rooms || {};
-	  sessions = parsed.sessions || {};
-      console.log(`[STORAGE] Restored previous session data (v${APP_VERSION}).`);
+      sessions = parsed.sessions || {};
+      
+      console.log(`[STORAGE] Restored previous session data (Schema v${DATA_SCHEMA_VERSION}).`);
+      
+      if (parsed.version !== APP_VERSION) {
+        console.log(`[SYSTEM] App updated from v${parsed.version} to v${APP_VERSION}. Data structure intact.`);
+        saveState();
+      }
+      
     } else {
-      console.warn(`[WARNING] Data version mismatch. App is v${APP_VERSION}, Data is v${parsed.version || 'unknown'}.`);
+      console.warn(`[WARNING] Data schema mismatch. Code expects Schema v${DATA_SCHEMA_VERSION}, Data is v${parsed.schemaVersion || '0'}.`);
       console.warn(`[WARNING] Starting with fresh state to prevent corruption.`);
     }
   } catch (err) {
