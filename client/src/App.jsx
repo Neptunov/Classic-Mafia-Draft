@@ -4,12 +4,12 @@
  * Manages global application state, socket connections, and view routing based on assigned roles.
  */
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './utils/AuthContext';
 import { socket, deviceId } from './utils/socket';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import LobbyView from './pages/LobbyView';
+import LobbyView from './pages/Lobby';
 import LoginView from './pages/LoginView';
 import AdminView from './pages/AdminView';
 import JudgeView from './pages/JudgeView';
@@ -22,6 +22,7 @@ function AppContent() {
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [isSetupRequired, setIsSetupRequired] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     function onConnect() { 
@@ -63,22 +64,28 @@ function AppContent() {
       socket.off('SETUP_COMPLETE');
     };
   }, [navigate]);
-
+  
+  const isLobbyView = location.pathname === '/';
+  
   return (
     <>
-      {gameState?.isDebugMode && (
+      {!isLobbyView && gameState?.isDebugMode && (
         <div style={{ backgroundColor: '#dc2626', color: 'white', textAlign: 'center', padding: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
           Warning: Debug Mode Active. Deck is Exposed.
         </div>
       )}
 
-      {!isConnected && (
+      {!isLobbyView && !isConnected && (
         <div style={{ backgroundColor: '#fef2f2', color: '#991b1b', textAlign: 'center', padding: '8px', borderBottom: '1px solid #fecaca' }}>
           Server Disconnected. Attempting to reconnect...
         </div>
       )}
 
-      <div style={{ padding: '20px' }}>
+      {/* Conditionally apply the legacy wrapper and padding */}
+      <div 
+        className={!isLobbyView ? "legacy-view" : ""} 
+        style={{ padding: isLobbyView ? '0px' : '20px' }}
+      >
         {isSetupRequired ? (
           <SetupView />
         ) : (

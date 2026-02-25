@@ -1,42 +1,121 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/**
+ * @file src/pages/App.css
+ * @description Global GUI styles.
+ * Utilizes CSS Flexbox for fluid, cross-device responsiveness.
+ */
+
+/* --- MAFIA THEME VARIABLES --- */
+:root {
+  --bg-black: #121212;         
+  --surface-black: #1e1e1e;    
+  --text-white: #e0e0e0;       
+  --accent-red: #d32f2f;       
+  --accent-gold: #ffd700;      
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* --- GLOBAL RESET --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  background-color: var(--bg-black);
+  color: var(--text-white);
+  font-family: sans-serif;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* --- TEMPORARY LEGACY WRAPPER --- */
+.legacy-view {
+  background-color: #ffffff; 
+  color: #000000;
+  min-height: 100vh;
+  width: 100%;
+  border-radius: 8px; 
 }
 
-.card {
-  padding: 2em;
+/* --- SHARED FORM ELEMENTS --- */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.read-the-docs {
-  color: #888;
+.input-group label {
+  font-size: 0.85rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.login-input {
+  background-color: var(--bg-black);
+  color: var(--text-white);
+  border: 1px solid #444;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: var(--accent-red);
+}
+
+.login-select {
+  background-color: var(--bg-black);
+  color: var(--text-white);
+  border: 1px solid #444;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  appearance: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.login-select:focus {
+  outline: none;
+  border-color: var(--accent-red);
+}
+
+.login-select option {
+  background-color: var(--bg-black);
+}
+
+.primary-btn {
+  background-color: var(--accent-red);
+  color: white;
+  border: none;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.primary-btn:hover {
+  background-color: #b71c1c;
+}
+
+.primary-btn:active {
+  transform: scale(0.98);
 }
