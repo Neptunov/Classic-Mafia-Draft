@@ -17,24 +17,32 @@ const Player = () => {
   const [revealedRole, setRevealedRole] = useState(null);
   const [isConnected, setIsConnected] = useState(socket.connected);
   
+  const [clientSeat, setClientSeat] = useState('Unassigned');
+  
   const prevIsRevealed = useRef(false);
 
   useEffect(() => {
     const handleStateUpdate = (state) => setGameState(state);
     const handlePrivateReveal = (roleData) => setRevealedRole(roleData.role);
+    const handleSeatAssigned = (seat) => setClientSeat(seat || 'Unassigned');
     const onConnect = () => setIsConnected(true);
     const onDisconnect = () => setIsConnected(false);
 
     socket.on('STATE_UPDATE', handleStateUpdate);
     socket.on('PRIVATE_ROLE_REVEAL', handlePrivateReveal);
+    socket.on('SEAT_ASSIGNED', handleSeatAssigned);
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
 
-    if (socket.connected) socket.emit('REQUEST_STATE');
+    if (socket.connected) {
+      socket.emit('REQUEST_STATE');
+      socket.emit('REQUEST_PERSONAL_INFO');
+    }
 
     return () => {
       socket.off('STATE_UPDATE', handleStateUpdate);
       socket.off('PRIVATE_ROLE_REVEAL', handlePrivateReveal);
+      socket.off('SEAT_ASSIGNED', handleSeatAssigned);
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
     };
@@ -51,10 +59,9 @@ const Player = () => {
 
   if (!gameState) return <div className="waiting-container"><div className="waiting-spinner"></div></div>;
 
-  // --- FEATURE: SINGLE MODE (Dormant) ---
+  // --- SINGLE MODE TURN LOGIC ---
   const isSingleMode = gameState.settings?.singleMode || false; 
-  const clientSeat = gameState.assignedSeat || 'Unassigned'; 
-  const isMyTurn = !isSingleMode || (gameState.activeSeat === clientSeat);
+  const isMyTurn = !isSingleMode || (gameState.currentTurn === clientSeat);
 
   const handlePickCard = (slotIndex) => {
     if (!gameState.isTrayUnlocked || revealedRole) return;

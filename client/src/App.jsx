@@ -12,7 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 import LobbyView from './pages/Lobby';
 import LoginView from './pages/Login';
-import AdminView from './pages/AdminView';
+import AdminView from './pages/Admin';
 import JudgeView from './pages/Judge';
 import PlayerView from './pages/Player';
 import StreamView from './pages/Stream';
@@ -66,27 +66,9 @@ function AppContent() {
     };
   }, [navigate]);
   
-  const isNewUI = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/judge' || location.pathname === '/stream' || location.pathname === '/player';
-  
   return (
     <>
-      {!isNewUI && gameState?.isDebugMode && (
-        <div style={{ backgroundColor: '#dc2626', color: 'white', textAlign: 'center', padding: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
-          Warning: Debug Mode Active. Deck is Exposed.
-        </div>
-      )}
-
-      {!isNewUI && !isConnected && (
-        <div style={{ backgroundColor: '#fef2f2', color: '#991b1b', textAlign: 'center', padding: '8px', borderBottom: '1px solid #fecaca' }}>
-          Server Disconnected. Attempting to reconnect...
-        </div>
-      )}
-
-      {/* Conditionally apply the legacy wrapper and padding */}
-      <div 
-        className={!isNewUI ? "legacy-view" : ""} 
-        style={{ padding: isNewUI ? '0px' : '20px' }}
-      >
+      <div style={{ padding: '0px'}}>
         {isSetupRequired ? (
           <SetupView />
         ) : (

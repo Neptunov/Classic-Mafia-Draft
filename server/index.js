@@ -3,7 +3,6 @@
  * @description Core backend server for the Classic Mafia Draft App.
  * Handles WebSocket routing, state synchronization, persistent storage, 
  * and secure tournament administration.
- * @version 0.1.1a
  */
 
 import express from 'express';
@@ -33,11 +32,12 @@ const APP_VERSION = packageData.version;
 // --- MANUAL DATA SCHEMA TRIGGER ---
 // Increment this integer manually ONLY when you change the structure of store.json.
 // The server will safely wipe old data if this doesn't match the file's schemaVersion.
-const DATA_SCHEMA_VERSION = 1;
+const DATA_SCHEMA_VERSION = 2;
 
 let adminCredentials = null;
 let rooms = {};  
-let sessions = {};    
+let sessions = {};
+let globalDebugMode = false;    
 
 const clients = {}; 
 
@@ -58,7 +58,8 @@ function saveState() {
     schemaVersion: DATA_SCHEMA_VERSION,
     admin: adminCredentials,
     rooms: rooms,
-    sessions: sessions 
+    sessions: sessions,
+    globalDebugMode: globalDebugMode 
   };
   fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2));
 }
@@ -97,8 +98,12 @@ function getInitialGameState() {
     results: {}, 
     isTrayUnlocked: false,
     isCardRevealed: false, 
-    isDebugMode: false,
+    isDebugMode: false, 
     areRolesLocked: false,
+    draftStartTime: null,
+    settings: {          
+      singleMode: false 
+    },
     clientCounts: { PLAYER: 0, JUDGE: 0, STREAM: 0, ADMIN: 0, UNASSIGNED: 0, PENDING_STREAM: 0 }
   };
 }
@@ -109,9 +114,10 @@ function getInitialGameState() {
 function broadcastState(roomId) {
   if (!roomId || !rooms[roomId]) return;
   const gs = rooms[roomId].gameState;
-  const cleanState = { ...gs };
   
-  if (!gs.isDebugMode) {
+  const cleanState = { ...gs, isDebugMode: globalDebugMode };
+  
+  if (!globalDebugMode) {
     cleanState.slots = "{HIDDEN_FOR_TOURNAMENT_INTEGRITY}"; 
   }
 
@@ -141,17 +147,35 @@ function broadcastToAdmins() {
   if (adminSockets.length === 0) return;
 
   const sanitizedRooms = {};
-  
   for (const [roomId, roomData] of Object.entries(rooms)) {
     const cleanState = { ...roomData.gameState };
-    if (!cleanState.isDebugMode) {
+    if (!globalDebugMode) {
       cleanState.slots = "{HIDDEN_FOR_TOURNAMENT_INTEGRITY}";
     }
     sanitizedRooms[roomId] = { gameState: cleanState };
   }
 
+  const fullRegistry = Object.values(clients).map(c => ({
+    ...c,
+    assignedSeat: sessions[c.deviceId]?.assignedSeat || null
+  }));
+
+  for (const [deviceId, session] of Object.entries(sessions)) {
+    if (session.isPhantom) {
+      fullRegistry.push({
+        id: deviceId, 
+        deviceId: deviceId,
+        name: 'Phantom Player (Debug)',
+        ip: 'Localhost',
+        role: session.role,
+        roomId: session.roomId,
+        assignedSeat: session.assignedSeat
+      });
+    }
+  }
+
   adminSockets.forEach(adminId => {
-    io.to(adminId).emit('REGISTRY_UPDATE', Object.values(clients));
+    io.to(adminId).emit('REGISTRY_UPDATE', fullRegistry);
     io.to(adminId).emit('ROOMS_UPDATE', sanitizedRooms); 
   });
 }
@@ -195,7 +219,6 @@ io.on('connection', (socket) => {
 
   socket.on('IDENTIFY', (deviceId) => {
     socket.deviceId = deviceId;
-    
     if (sessions[deviceId] && sessions[deviceId].roomId) {
       const roomId = sessions[deviceId].roomId;
       
@@ -206,7 +229,15 @@ io.on('connection', (socket) => {
         return;
       }
 
-      clients[socket.id] = { id: socket.id, deviceId, name: sessions[deviceId].name, ip: clientIp, role: sessions[deviceId].role, roomId };
+      clients[socket.id] = { 
+        id: socket.id, 
+        deviceId, 
+        name: sessions[deviceId].name, 
+        ip: clientIp, 
+        role: sessions[deviceId].role, 
+        roomId,
+        streamLayout: sessions[deviceId].streamLayout || 'CENTER' 
+      };
       
       if (roomId !== 'GLOBAL') {
         socket.join(roomId);
@@ -270,15 +301,16 @@ io.on('connection', (socket) => {
       socket.emit('ROLE_ASSIGNED', 'UNASSIGNED'); 
       return;
     }
-    const roomId = roomCode.toUpperCase().trim();
+    const roomId = roomCode?.toUpperCase().trim();
     if (!roomId || rooms[roomId]) return; 
     
     rooms[roomId] = { gameState: getInitialGameState() };
+    
     broadcastAvailableRooms();
     broadcastToAdmins();
     saveState();
   });
-
+ 
   socket.on('DELETE_ROOM', (roomId) => {
     if (clients[socket.id]?.role !== 'ADMIN') return;
     if (!rooms[roomId] || rooms[roomId].gameState.areRolesLocked) return; 
@@ -310,8 +342,17 @@ io.on('connection', (socket) => {
 
     socket.join(roomId);
 
-    if (!sessions[deviceId]) sessions[deviceId] = { name: 'Stream Request', role: 'PENDING_STREAM', roomId };
-    clients[socket.id] = { id: socket.id, deviceId, name: sessions[deviceId].name, ip: clientIp, role: sessions[deviceId].role, roomId };
+    if (!sessions[deviceId]) sessions[deviceId] = { name: 'Stream Request', role: 'PENDING_STREAM', roomId, streamLayout: 'CENTER' };
+    
+    clients[socket.id] = { 
+      id: socket.id, 
+      deviceId, 
+      name: sessions[deviceId].name, 
+      ip: clientIp, 
+      role: sessions[deviceId].role, 
+      roomId,
+      streamLayout: sessions[deviceId].streamLayout || 'CENTER'
+    };
 
     if (clients[socket.id].role === 'STREAM') {
       socket.join(clients[socket.id].roomId);
@@ -328,11 +369,9 @@ io.on('connection', (socket) => {
     clients[socket.id].name = streamName;
     sessions[deviceId].role = 'PENDING_STREAM';
     sessions[deviceId].name = streamName;
-	sessions[deviceId].streamLayout = 'CENTER';
 
     io.to(socket.id).emit('ROLE_ASSIGNED', 'PENDING_STREAM');
     io.to(socket.id).emit('STREAM_IP', clientIp); 
-    
     broadcastToAdmins();
   });
 
@@ -367,6 +406,7 @@ io.on('connection', (socket) => {
     targetClient.streamLayout = layout;
     if (sessions[targetClient.deviceId]) {
       sessions[targetClient.deviceId].streamLayout = layout;
+	  saveState();
     }
 
     io.to(targetSocketId).emit('UPDATE_LAYOUT', layout);
@@ -385,8 +425,12 @@ io.on('connection', (socket) => {
     
     targetClient.role = newRole;
     sessions[targetClient.deviceId].role = newRole; 
-    io.to(targetSocketId).emit('ROLE_ASSIGNED', newRole);
     
+    if (newRole !== 'PLAYER') {
+      sessions[targetClient.deviceId].assignedSeat = null;
+    }
+
+    io.to(targetSocketId).emit('ROLE_ASSIGNED', newRole);
     updateClientCounts(roomId);
     broadcastToAdmins();
   });
@@ -407,16 +451,124 @@ io.on('connection', (socket) => {
 
   socket.on('TOGGLE_ROLE_LOCK', ({ roomId, booleanState }) => {
     if (clients[socket.id]?.role !== 'ADMIN' || !rooms[roomId] || rooms[roomId].gameState.status === 'IN_PROGRESS') return;
-    rooms[roomId].gameState.areRolesLocked = booleanState;
-    io.to(roomId).emit('STATE_UPDATE', rooms[roomId].gameState);
+
+    const room = rooms[roomId];
+
+    if (booleanState === true && room.gameState.settings.singleMode) {
+      const seatedPlayers = Object.values(sessions).filter(
+        s => s.roomId === roomId && s.role === 'PLAYER' && s.assignedSeat
+      );
+      
+      const uniqueSeats = new Set(seatedPlayers.map(s => s.assignedSeat));
+      
+      if (uniqueSeats.size !== 10) {
+        return socket.emit('ADMIN_ERROR', 'Single Mode requires exactly 10 players to be assigned unique seats (1-10) before locking.');
+      }
+    }
+
+    room.gameState.areRolesLocked = booleanState;
+    io.to(roomId).emit('STATE_UPDATE', room.gameState);
     broadcastToAdmins();
   });
 
-  socket.on('TOGGLE_DEBUG_MODE', ({ roomId, booleanState }) => {
-    if (clients[socket.id]?.role !== 'ADMIN' || !rooms[roomId] || rooms[roomId].gameState.status === 'IN_PROGRESS') return;
-    rooms[roomId].gameState.isDebugMode = booleanState;
-    io.to(roomId).emit('STATE_UPDATE', rooms[roomId].gameState);
+  socket.on('TOGGLE_GLOBAL_DEBUG', (booleanState, callback) => {
+    if (clients[socket.id]?.role !== 'ADMIN') return callback?.({ success: false, message: 'Unauthorized' });
+    
+    const isAnyDrafting = Object.values(rooms).some(r => r.gameState.status !== 'PENDING');
+    if (isAnyDrafting) {
+      return callback?.({ success: false, message: 'Cannot change Debug Mode while a draft is active.' });
+    }
+
+    globalDebugMode = booleanState;
+    
+    if (!globalDebugMode) {
+      const affectedRooms = new Set();
+      for (const sessionId in sessions) {
+        if (sessions[sessionId].isPhantom) {
+          affectedRooms.add(sessions[sessionId].roomId);
+          delete sessions[sessionId];
+        }
+      }
+      affectedRooms.forEach(roomId => {
+        if (rooms[roomId] && rooms[roomId].gameState.status === 'PENDING') {
+          rooms[roomId].gameState.areRolesLocked = false;
+        }
+      });
+    }
+
+    saveState();
+    Object.keys(rooms).forEach(roomId => broadcastState(roomId)); 
+    io.emit('GLOBAL_DEBUG_UPDATE', globalDebugMode); 
+    callback?.({ success: true });
+  });
+
+  socket.on('TOGGLE_SINGLE_MODE', ({ roomId, booleanState }) => {
+    if (clients[socket.id]?.role !== 'ADMIN' || !rooms[roomId]) return;
+    if (rooms[roomId].gameState.status !== 'PENDING') return; 
+    
+    rooms[roomId].gameState.settings.singleMode = booleanState;
+
+    if (!booleanState) {
+      for (const sessionId in sessions) {
+        if (sessions[sessionId].isPhantom && sessions[sessionId].roomId === roomId) {
+          delete sessions[sessionId];
+        }
+      }
+    }
+
+    saveState();
     broadcastToAdmins();
+  });
+
+  socket.on('SPAWN_PHANTOMS', (roomId, callback) => {
+    if (clients[socket.id]?.role !== 'ADMIN') return callback?.({ success: false });
+    if (!globalDebugMode) return callback?.({ success: false, message: 'Debug mode required' });
+    
+    const existingSeats = Object.values(sessions)
+      .filter(s => s.roomId === roomId && s.role === 'PLAYER' && s.assignedSeat)
+      .map(s => s.assignedSeat);
+
+    for (let i = 1; i <= 10; i++) {
+      if (!existingSeats.includes(i)) {
+        const phantomId = `phantom_${roomId}_seat_${i}`;
+        sessions[phantomId] = {
+          role: 'PLAYER',
+          roomId: roomId,
+          assignedSeat: i,
+          isPhantom: true 
+        };
+      }
+    }
+    
+    saveState();
+    broadcastToAdmins();
+    callback?.({ success: true });
+  });
+
+  socket.on('ASSIGN_SEAT', ({ targetDeviceId, seatNumber }) => {
+    if (clients[socket.id]?.role !== 'ADMIN') return;
+    
+    const session = sessions[targetDeviceId];
+    if (session) {
+      const roomId = session.roomId;
+      if (rooms[roomId] && rooms[roomId].gameState.areRolesLocked) return;
+
+      session.assignedSeat = seatNumber ? parseInt(seatNumber) : null;
+      saveState();
+      broadcastToAdmins();
+
+      const targetClient = Object.values(clients).find(c => c.deviceId === targetDeviceId);
+      if (targetClient) {
+        io.to(targetClient.id).emit('SEAT_ASSIGNED', session.assignedSeat);
+      }
+    }
+  });
+
+  socket.on('REQUEST_PERSONAL_INFO', () => {
+    const deviceId = clients[socket.id]?.deviceId;
+    if (deviceId && sessions[deviceId]) {
+      socket.emit('SEAT_ASSIGNED', sessions[deviceId].assignedSeat || null);
+    }
   });
 
   socket.on('REQUEST_REGISTRY', () => {
@@ -445,10 +597,11 @@ io.on('connection', (socket) => {
     gs.currentTurn = 1;
     gs.results = {};
     gs.isTrayUnlocked = false;
-	  gs.isCardRevealed = false;
+	gs.isCardRevealed = false;
+	gs.draftStartTime = Date.now();
     
     broadcastState(roomId);
-	  saveState();
+	saveState();
   });
 
   socket.on('UNLOCK_TRAY', () => {
@@ -509,11 +662,21 @@ io.on('connection', (socket) => {
     gs.isTrayUnlocked = false;
     gs.isCardRevealed = true; 
 
-    const playerSockets = Object.values(clients)
-      .filter(c => c.roomId === roomId && c.role === 'PLAYER')
-      .map(c => c.id);
+    const isSingleMode = gs.settings?.singleMode;
+    const activeSeat = gs.currentTurn;
+
+    const targetSockets = Object.values(clients).filter(c => {
+      if (c.roomId !== roomId || c.role !== 'PLAYER') return false;
+      
+      if (isSingleMode) {
+        const session = sessions[c.deviceId];
+        return session && session.assignedSeat === activeSeat;
+      }
+      
+      return true;
+    }).map(c => c.id);
     
-    playerSockets.forEach(playerId => {
+    targetSockets.forEach(playerId => {
       io.to(playerId).emit('PRIVATE_ROLE_REVEAL', { role, slotIndex: randomSlotIndex });
     });
 
@@ -523,7 +686,7 @@ io.on('connection', (socket) => {
     else gs.currentTurn++;
     
     broadcastState(roomId);
-	  saveState();
+    saveState();
   });
 
   socket.on('RESET_DRAFT', () => {
@@ -533,9 +696,12 @@ io.on('connection', (socket) => {
     const gs = rooms[roomId].gameState;
     const locked = gs.areRolesLocked;
     const debug = gs.isDebugMode;
+    const singleMode = gs.settings?.singleMode; 
+    
     rooms[roomId].gameState = getInitialGameState();
     rooms[roomId].gameState.areRolesLocked = locked;
     rooms[roomId].gameState.isDebugMode = debug;
+    rooms[roomId].gameState.settings.singleMode = singleMode; 
     
     updateClientCounts(roomId);
     io.to(roomId).emit('STATE_UPDATE', rooms[roomId].gameState);
@@ -589,6 +755,7 @@ if (fs.existsSync(STORE_FILE)) {
       adminCredentials = parsed.admin;
       rooms = parsed.rooms || {};
       sessions = parsed.sessions || {};
+	  globalDebugMode = parsed.globalDebugMode || false;
       
       console.log(`[STORAGE] Restored previous session data (Schema v${DATA_SCHEMA_VERSION}).`);
       

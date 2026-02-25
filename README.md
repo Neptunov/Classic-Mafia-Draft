@@ -13,8 +13,9 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 The application is currently in the pre-release development phase, focusing on iterative architectural and visual updates.
 
-* **v0.2.0:** Admin Console Rework (Finalizing the UI/UX update phase).
 * **v0.2.1 - v0.3.0: Security Implementation.** Focus on encrypting all communications between the React frontend and Node backend. Includes hashing all sensitive information stored on the local machine to protect against state corruption or external modification.
+* **v0.3.1 - v0.3.5: Internationalization (i18n).** Expanding the modular dictionary structure to support dynamic UI language switching (e.g., seamlessly shifting between English and Russian without rebuilding the client).
+* **v0.3.6 - v0.4.0: Custom Asset Engine.** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
 * **v1.0.0: Stable Release.** Final functional version. Includes the packaging of the application into standard executable/installer formats, deprecating the CMD launch requirement.
 
 ## 🏗️ Room Management
@@ -30,6 +31,16 @@ The application is currently in the pre-release development phase, focusing on i
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.2.0: The Admin Console Update**
+- Completely overhauled the Super Admin Dashboard (`Admin.jsx`) into a responsive sidebar architecture.
+- Added live Overview Plates featuring dynamic draft timers and multi-table synchronization.
+- Centralized the Security and Stream Management modules into global tabs.
+- Implemented global `isDebugMode` toggle.
+- Added a unified Connected Devices interface with IP tracking and integrated single-mode seat assignments.
+- Engineered a Phantom Player generation system for testing rigid tournament constraints.
+- Integrated a live Mini-Tray and Judge Results board into the detailed room management view.
+- Added strict 10-player validation lock-outs for Single Mode tournament configurations.
 
 **v0.1.6: Interactive Player Tray Overhaul**
 - Completely redesigned the Player draft tray (`Player.jsx`) with a dynamic flex-grid architecture that automatically scales from a 2-row layout to a 1-row layout as cards are drawn.
