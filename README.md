@@ -24,7 +24,7 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 ## 📝 Changelog
 
 **v0.1.1a Patch: Authentic Deck Assets**
-- **Premium Visuals:** Replaced the temporary placeholder role art with actual, high-quality scans of a physical Classic Mafia deck.
+- **Visuals Upgrade:** Replaced the temporary placeholder role art with actual, high-quality scans of a physical Classic Mafia deck.
 
 **v0.1.1: The Visuals & QoL Update**
 This update replaces prototype UI with custom visuals and fixes several core persistence bugs.
@@ -55,7 +55,8 @@ This major update transforms the application from a volatile memory script into 
 - **Audience Protection Timer:** The Stream Overlay now operates independently of the player's reading speed. If a player dismisses their role instantly, the stream strictly holds the 3D card on the OBS broadcast for a minimum of 2.5 seconds to guarantee audience legibility.
 - **Streamlined Player UX:** Removed the "Confirm Pick" dialog. Cards now register picks instantly on tap and feature a CSS scale "squish" effect for immediate tactile feedback.
 - **Dynamic Judge Controls:** The Judge's "Force Pick" button now dynamically transforms into a red "Close Card" button whenever a role is actively displayed. This allows the Judge to remotely dismiss a card on the player's tablet and stream overlay if a player walks away.
-- **Race Condition Guardrails:** 1. The server strictly rejects delayed FORCE_PICK commands if the player has already manually tapped a card while the Judge's confirmation popup was open.
+- **Race Condition Guardrails:** 
+	1. The server strictly rejects delayed FORCE_PICK commands if the player has already manually tapped a card while the Judge's confirmation popup was open.
 	2. The Stream Overlay relies purely on explicit CLEAR_STREAM signals rather than inferring closures from trailing state updates.
 
 **v0.0.3 Alpha: Tournament Reveal and Security**
@@ -84,7 +85,7 @@ This major update transforms the application from a volatile memory script into 
 
 **Project Architecture & Engineering:** Dany "Nolan" Khomich
 **Original Mafia Game Concept:** Dmitry Davidoff (1986)
-**Current Classic Mafia Rules:** FIIM (2013), 
+**Current Classic Mafia Rules:** FIIM (2013); iMafia (2022); MafGame (2023); EmotionGames (2024)
 
 **AI Assistance Disclaimer:**
 This project was developed with the assistance of AI (Google Gemini). The AI was utilized as a pair-programming partner for syntax generation, debugging complex state race-conditions, and optimizing CSS Grid layouts. All core application logic, security architecture, and system design decisions were directed and reviewed by the human developer.
