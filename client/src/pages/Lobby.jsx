@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { Wifi, ShieldAlert, Key, LogIn, MonitorSmartphone } from 'lucide-react';
 import { socket, deviceId } from '../utils/socket';
 import { en } from '../locales/en';
+import packageJson from '../../package.json';
 import '../App.css'; 
 import './Lobby.css';
 
@@ -165,7 +166,10 @@ const Lobby = () => {
         </div>
       </main>
 
+      {/* FOOTER */}
       <footer className="lobby-footer">
+        <span className="version-text">v{packageJson.version}</span>
+        
         <button className="admin-btn" onClick={() => navigate('/login')}>
           <Key size={16} />
           {text.adminLogin}

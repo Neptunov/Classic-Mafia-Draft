@@ -25,6 +25,12 @@ The application is currently in the pre-release development phase, focusing on i
 
 ## 📝 Changelog
 
+**v0.1.3: Admin UI & Schema Versioning**
+- Overhauled the Admin Login interface to match the new responsive, dark-theme architecture.
+- Implemented dynamic version rendering in the UI footers synced directly with `package.json`.
+- Upgraded the backend storage engine to use manual Schema Versioning, protecting active tournament data from being wiped during minor UI patch updates.
+- Fixed a React Router authentication context loop.
+
 **v0.1.2: Lobby UI & Localization**
 - Replaced the legacy Lobby view with a responsive, Flexbox-based interface.
 - Extracted static strings into `src/locales/en.js` to prepare for future localization.
