@@ -1,0 +1,186 @@
+/**
+ * @file src/pages/Player.css
+ * @description Styles for the interactive Player draft tray.
+ * Features responsive aspect-ratio cards, continuous floating animations,
+ * and a cinematic reveal overlay.
+ */
+
+.player-tray-container {
+  width: 100vw;
+  height: 100vh;
+  background-image: url('/velvet-tray.jpg'); 
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* --- BACKGROUND WARNINGS --- */
+.tray-background-warning {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 4vw; 
+  font-weight: 900;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 10px;
+  z-index: 0; 
+  pointer-events: none;
+  opacity: 0.3; 
+}
+
+.warning-disconnect { color: var(--accent-red); }
+.warning-debug { color: var(--accent-gold); }
+
+/* --- DYNAMIC FLEX GRID (90vw / 90vh = 5% margins) --- */
+.tray-layout {
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 360vw;
+  height: 360vh;
+  gap: 4vh; 
+}
+
+.card-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2vw; 
+  width: 100%;
+  flex: 1; 
+  max-height: 45vh; 
+}
+
+/* --- THE CARDS (Responsive & Floating) --- */
+.card-slot {
+  width: min(16vw, 28vh); 
+  height: auto;
+  aspect-ratio: 2.5 / 3.5;
+  position: relative;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.card-slot.locked {
+  cursor: not-allowed;
+  opacity: 0.6; 
+}
+
+.card-slot:not(.locked):active .card-inner {
+  transform: scale(0.95);
+  filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.9));
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: floatCard 4s ease-in-out infinite;
+  transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+/* Stagger the floating animations so they don't bob in robotic unison */
+.card-slot:nth-child(odd) .card-inner { animation-delay: 0.5s; }
+.card-slot:nth-child(3n) .card-inner { animation-delay: 1.2s; }
+
+@keyframes floatCard {
+  0% { transform: translateY(0px); filter: drop-shadow(0 15px 15px rgba(0, 0, 0, 0.7)); }
+  50% { transform: translateY(-12px); filter: drop-shadow(0 25px 20px rgba(0, 0, 0, 0.4)); }
+  100% { transform: translateY(0px); filter: drop-shadow(0 15px 15px rgba(0, 0, 0, 0.7)); }
+}
+
+.card-front, .card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 4%; 
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); 
+}
+
+.card-front {
+  background-image: url('/roles/card-back.jpg');
+  background-size: cover;
+  background-position: center;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+  background-size: cover;
+  background-position: center;
+}
+
+/* --- CINEMATIC REVEAL OVERLAY --- */
+.cinematic-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.92);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.revealed-card-container {
+  height: 60vh;
+  aspect-ratio: 2.5 / 3.5;
+  perspective: 1000px;
+  margin-bottom: 3rem;
+  filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.1));
+}
+
+.revealed-card-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: cinematicFlip 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.revealed-memorize-btn {
+  background-color: var(--accent-red);
+  color: var(--text-white);
+  border: 2px solid #b71c1c;
+  padding: 1.2rem 4rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 20px rgba(183, 28, 28, 0.3);
+}
+
+.revealed-memorize-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 5px 10px rgba(183, 28, 28, 0.4);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cinematicFlip {
+  0% { transform: scale(0.5) rotateY(0deg); }
+  50% { transform: scale(1.1) rotateY(90deg); }
+  100% { transform: scale(1) rotateY(180deg); }
+}

@@ -13,8 +13,6 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 The application is currently in the pre-release development phase, focusing on iterative architectural and visual updates.
 
-* **v0.1.5:** Stream Overlay Overhaul.
-* **v0.1.6:** Player View Overhaul (Interactive Draft Tray).
 * **v0.2.0:** Admin Console Rework (Finalizing the UI/UX update phase).
 * **v0.2.1 - v0.3.0: Security Implementation.** Focus on encrypting all communications between the React frontend and Node backend. Includes hashing all sensitive information stored on the local machine to protect against state corruption or external modification.
 * **v1.0.0: Stable Release.** Final functional version. Includes the packaging of the application into standard executable/installer formats, deprecating the CMD launch requirement.
@@ -32,6 +30,13 @@ The application is currently in the pre-release development phase, focusing on i
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.1.6: Interactive Player Tray Overhaul**
+- Completely redesigned the Player draft tray (`Player.jsx`) with a dynamic flex-grid architecture that automatically scales from a 2-row layout to a 1-row layout as cards are drawn.
+- Implemented a high-resolution velvet texture background with dynamic CSS drop-shadows to create a physical, floating card illusion.
+- Fixed a local React state desync to ensure the cinematic reveal overlay instantly closes when the Judge forces a remote dismissal.
+- Built dormant "Single Mode" logic for upcoming individual-tablet tournament configurations.
+- Added artist credentials for the UI textures.
 
 **v0.1.5: Stream Overlay & Setup Polish**
 - Overhauled the Stream overlay (`Stream.jsx`) to utilize the standard tournament dark-theme palette.
@@ -107,5 +112,6 @@ The application is currently in the pre-release development phase, focusing on i
 **Project Architecture & Engineering:** Dany "Nolan" Khomich  
 **Original Mafia Game Concept:** Dmitry Davidoff (1986)  
 **Current Classic Mafia Rules:** FIIM (2013); iMafia (2022); MafGame (2023); EmotionGames (2024)
+**UI Assets:** Velvet texture background designed by Freepik author @benzoix
 
 *Note: This project utilizes AI assistance for syntax generation, layout optimization, and debugging. Core application logic and system design are directed by the human developer.*

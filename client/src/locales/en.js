@@ -72,5 +72,15 @@ export const en = {
     errorMatch: "Passwords do not match.",
     connected: "Connected",
     disconnected: "Disconnected"
+  },
+  player: {
+    waitingTitle: "Tray Locked",
+    waitingSubtitle: "Waiting for the Judge to unlock the draft...",
+    selectTitle: "Select a Card",
+    selectSubtitle: "Tap a physical card to reveal your role",
+    memorizedBtn: "I MEMORIZED IT",
+    warningDisconnect: "SERVER DISCONNECTED",
+    warningDebug: "DEBUG MODE ACTIVE",
+    seat: "Seat {number}"
   }
 };

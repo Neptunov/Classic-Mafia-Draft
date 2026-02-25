@@ -14,7 +14,7 @@ import LobbyView from './pages/Lobby';
 import LoginView from './pages/Login';
 import AdminView from './pages/AdminView';
 import JudgeView from './pages/Judge';
-import PlayerView from './pages/PlayerView';
+import PlayerView from './pages/Player';
 import StreamView from './pages/Stream';
 import SetupView from './pages/Setup';
 
@@ -66,7 +66,7 @@ function AppContent() {
     };
   }, [navigate]);
   
-  const isNewUI = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/judge'|| location.pathname === '/stream';
+  const isNewUI = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/judge' || location.pathname === '/stream' || location.pathname === '/player';
   
   return (
     <>
