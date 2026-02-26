@@ -11,6 +11,7 @@ import { socket } from '../utils/socket';
 import { useAuth } from '../utils/AuthContext';
 import { en } from '../locales/en';
 import packageJson from '../../package.json';
+import CryptoJS from 'crypto-js';
 import '../App.css'; 
 import './Lobby.css'; 
 
@@ -43,15 +44,32 @@ const LoginView = () => {
 
     if (password.trim() === '') return;
 
-    socket.emit('ADMIN_LOGIN', password, (response) => {
-      if (response.success) {
-        setPassword('');
-        login(); 
-        navigate('/admin');
-      } else {
-        setErrorMsg(response.message || text.defaultError);
-        setPassword(''); 
+    socket.emit('REQUEST_LOGIN_CHALLENGE', (challengeData) => {
+      if (!challengeData.success) {
+        setErrorMsg(challengeData.message);
+        return;
       }
+
+      const { salt, nonce } = challengeData;
+
+      const baseHash = CryptoJS.PBKDF2(password, salt, { 
+        keySize: 512 / 32,
+        iterations: 10000, 
+        hasher: CryptoJS.algo.SHA512 
+      }).toString(CryptoJS.enc.Hex);
+
+      const hmacResponse = CryptoJS.HmacSHA256(baseHash, nonce).toString(CryptoJS.enc.Hex);
+
+      socket.emit('ADMIN_LOGIN', hmacResponse, (loginResponse) => {
+        if (loginResponse.success) {
+          setPassword('');
+          login(); 
+          navigate('/admin');
+        } else {
+          setErrorMsg(loginResponse.message || text.defaultError);
+          setPassword(''); 
+        }
+      });
     });
   };
 

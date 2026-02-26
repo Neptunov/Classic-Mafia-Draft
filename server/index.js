@@ -39,13 +39,16 @@ let rooms = {};
 let sessions = {};
 let globalDebugMode = false;    
 
+const loginAttempts = {}; 
+const loginChallenges = {};
+
 const clients = {}; 
 
 /**
  * Hashes a plaintext password securely using PBKDF2.
  */
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
-  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
   return { salt, hash };
 }
 
@@ -65,15 +68,40 @@ function saveState() {
 }
 
 /**
- * Validates incoming plaintext passwords against the stored hash.
+ * Validates the HMAC challenge response instead of a plaintext password.
  */
-function verifyAdmin(password) {
-  if (!adminCredentials) return false;
-  const { hash } = hashPassword(password, adminCredentials.salt);
-  return hash === adminCredentials.hash;
+function verifyAdmin(clientHmacResponse, nonce) {
+  if (!adminCredentials || !nonce) return false;
+  
+  const expectedHmac = crypto.createHmac('sha256', nonce)
+                             .update(adminCredentials.hash)
+                             .digest('hex');
+                             
+  return crypto.timingSafeEqual(Buffer.from(clientHmacResponse, 'hex'), Buffer.from(expectedHmac, 'hex'));
+}
+
+/**
+ * Validates a raw plaintext password (used for local CLI and internal state changes).
+ */
+function verifyPasswordPlaintext(password) {
+  if (!adminCredentials || !password) return false;
+  
+  const testHash = crypto.pbkdf2Sync(password, adminCredentials.salt, 10000, 64, 'sha512').toString('hex');
+  return crypto.timingSafeEqual(Buffer.from(testHash, 'hex'), Buffer.from(adminCredentials.hash, 'hex'));
 }
 
 // --- PRODUCTION FILE SERVING ---
+
+const isDevBuild = APP_VERSION.toLowerCase().includes('dev');
+
+app.use((req, res, next) => {
+  if (req.url.endsWith('.map') && !isDevBuild) {
+    console.warn(`[SECURITY] Blocked source map request from ${req.ip} (Release Build).`);
+    return res.status(404).send('Not Found');
+  }
+  next();
+});
+
 const clientBuildPath = path.join(__dirname, '../client/dist');
 app.use(express.static(clientBuildPath));
 
@@ -280,8 +308,34 @@ io.on('connection', (socket) => {
     broadcastToAdmins();
   });
 
-  socket.on('ADMIN_LOGIN', (password, callback) => {
-    if (verifyAdmin(password)) {
+  socket.on('REQUEST_LOGIN_CHALLENGE', (callback) => {
+    if (!adminCredentials) return callback({ success: false, message: 'Server not configured.' });
+    
+    const attemptData = loginAttempts[clientIp] || { count: 0, lockoutUntil: 0 };
+    if (Date.now() < attemptData.lockoutUntil) {
+      const minutesLeft = Math.ceil((attemptData.lockoutUntil - Date.now()) / 60000);
+      return callback({ success: false, message: `Too many failed attempts. Locked out for ${minutesLeft} minutes.` });
+    }
+
+    const nonce = crypto.randomBytes(16).toString('hex');
+    loginChallenges[socket.id] = nonce;
+
+    callback({ success: true, salt: adminCredentials.salt, nonce: nonce });
+  });
+
+  socket.on('ADMIN_LOGIN', (clientHmacResponse, callback) => {
+    const attemptData = loginAttempts[clientIp] || { count: 0, lockoutUntil: 0 };
+    
+    if (Date.now() < attemptData.lockoutUntil) {
+      return callback({ success: false, message: 'IP temporarily locked out.' });
+    }
+
+    const activeNonce = loginChallenges[socket.id];
+    
+    if (verifyAdmin(clientHmacResponse, activeNonce)) {
+      delete loginAttempts[clientIp];
+      delete loginChallenges[socket.id];
+
       if (!clients[socket.id]) clients[socket.id] = { id: socket.id, deviceId: socket.deviceId };
       clients[socket.id].role = 'ADMIN';
       
@@ -292,15 +346,28 @@ io.on('connection', (socket) => {
       socket.emit('ROLE_ASSIGNED', 'ADMIN');
       broadcastToAdmins();
       if (typeof callback === 'function') callback({ success: true });
+      
     } else {
-      if (typeof callback === 'function') callback({ success: false, message: 'Invalid Admin Password' });
+      attemptData.count += 1;
+      if (attemptData.count >= 5) {
+        attemptData.lockoutUntil = Date.now() + (10 * 60 * 1000);
+        console.warn(`[SECURITY] IP ${clientIp} locked out for 10 minutes (Brute Force Protection).`);
+      }
+      loginAttempts[clientIp] = attemptData;
+      
+      delete loginChallenges[socket.id]; 
+      
+      if (typeof callback === 'function') {
+        const msg = attemptData.count >= 5 ? 'Too many attempts. Locked out for 10 minutes.' : 'Invalid Admin Password';
+        callback({ success: false, message: msg });
+      }
     }
   });
   
   socket.on('CHANGE_PASSWORD', ({ oldPassword, newPassword }) => {
     if (clients[socket.id]?.role !== 'ADMIN') return;
 
-    if (verifyAdmin(oldPassword)) {
+    if (verifyPasswordPlaintext(oldPassword)) {
       adminCredentials = hashPassword(newPassword);
       saveState();
       
@@ -828,7 +895,7 @@ function startServer() {
 
       case 'reset':
         rl.question('WARNING: Enter Admin Password to confirm factory reset (Text will be visible): ', (pass) => {
-          if (verifyAdmin(pass)) {
+          if (verifyPasswordPlaintext(pass)) {
             if (fs.existsSync(STORE_FILE)) fs.unlinkSync(STORE_FILE);
             console.log(`\n[SUCCESS] Server wiped. Please restart the application.\n`);
             process.exit(0);

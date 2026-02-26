@@ -11,7 +11,6 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 🗺️ Development Roadmap
 
-* **v0.2.2 - Challenge-Response Auth:** Neutralizing Wi-Fi sniffing vulnerabilities by replacing plaintext password transmission with HMAC (Hash-based Message Authentication Code) challenge-response handshakes, plus IP rate-limiting for brute-force protection.
 * **v0.2.3 - Input Sanitization (The Armor Patch):** Adding strict type and boundary checks to all WebSocket listeners to prevent server crashes from maliciously crafted payloads.
 * **v0.3.0 - Data Resilience & Storage Vault:** Overhauling the local `store.json` file. Implementing AES-256 encryption to render stolen files unreadable, and applying Reed-Solomon error correction encoding to automatically reconstruct corrupted bytes caused by unexpected power losses or disk failures.
 * **v0.3.1 - v0.3.5: Internationalization (i18n):** Expanding the modular dictionary structure to support dynamic UI language switching without rebuilding the client.
@@ -30,6 +29,11 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.2.2: Challenge-Response Auth & Rate Limiting**
+- Replaced plaintext password transmission with a secure cryptographic challenge-response system, protecting the Admin login from local Wi-Fi packet sniffing.
+- Implemented an IP-based rate limiter that automatically locks out devices for 10 minutes after 5 failed authentication attempts.
+- Configured the Express server to automatically block DevTools access to frontend source code during production releases.
 
 **v0.2.1: The Identity Patch (Session Hardening)**
 - Replaced weak client-side ID generation with server-issued, 256-bit cryptographic hex tokens to prevent session hijacking.
