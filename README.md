@@ -31,6 +31,11 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 📝 Changelog
 
+**v0.2.2: Challenge-Response Auth & Rate Limiting**
+- Replaced plaintext password transmission with a secure cryptographic challenge-response system, protecting the Admin login from local Wi-Fi packet sniffing.
+- Implemented an IP-based rate limiter that automatically locks out devices for 10 minutes after 5 failed authentication attempts.
+- Configured the Express server to automatically block DevTools access to frontend source code during production releases.
+
 **v0.2.1: The Identity Patch (Session Hardening)**
 - Replaced weak client-side ID generation with server-issued, 256-bit cryptographic hex tokens to prevent session hijacking.
 - The Node server now actively rejects all non-localhost WebSocket connections until the Master Password is fundamentally established.
