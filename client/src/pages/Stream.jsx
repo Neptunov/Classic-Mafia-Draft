@@ -5,7 +5,7 @@
  * to guarantee viewer legibility regardless of player interaction speed.
  */
 import { useState, useEffect, useRef } from 'react';
-import { socket, deviceId } from '../utils/socket';
+import { socket, getDeviceId } from '../utils/socket';
 import { en } from '../locales/en';
 import '../App.css'; // Import our standard theme variables
 
@@ -26,7 +26,7 @@ export default function StreamView() {
   const revealStartTime = useRef(0); 
 
   useEffect(() => {
-    socket.emit('REQUEST_STREAM_ACCESS', { userAgent: navigator.userAgent, deviceId });
+    socket.emit('REQUEST_STREAM_ACCESS', { userAgent: navigator.userAgent, deviceId: getDeviceId });
 
     const handleRoleAssigned = (role) => setIsVerified(role === 'STREAM');
     const handleReveal = (data) => setQueue((prevQueue) => [...prevQueue, data]);

@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './utils/AuthContext';
-import { socket, deviceId } from './utils/socket';
+import { socket, getDeviceId, setDeviceId } from './utils/socket';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import LobbyView from './pages/Lobby';
@@ -28,13 +28,17 @@ function AppContent() {
   useEffect(() => {
     function onConnect() { 
       setIsConnected(true); 
-      socket.emit('IDENTIFY', deviceId); 
+      socket.emit('IDENTIFY', getDeviceId()); 
     }
+    
     function onDisconnect() { setIsConnected(false); }
     
-    function onStateUpdate(newState) {
-      setGameState(newState);
+    function onAssignNewDeviceId(newSecureId) {
+      setDeviceId(newSecureId);
+      socket.emit('IDENTIFY', newSecureId); 
     }
+
+    function onStateUpdate(newState) { setGameState(newState); }
 
     function onRoleAssigned(newRole) {
       console.log(`Server assigned role: ${newRole}`);
@@ -42,9 +46,7 @@ function AppContent() {
       else if (newRole === 'JUDGE') navigate('/judge');
       else if (newRole === 'STREAM') navigate('/stream');
       else if (newRole === 'UNASSIGNED') {
-        if (window.location.pathname !== '/stream') {
-          navigate('/');
-        }
+        if (window.location.pathname !== '/stream') navigate('/');
       }
     }
 
@@ -53,12 +55,14 @@ function AppContent() {
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.on('ASSIGN_NEW_DEVICE_ID', onAssignNewDeviceId);
     socket.on('STATE_UPDATE', onStateUpdate);
     socket.on('ROLE_ASSIGNED', onRoleAssigned);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.off('ASSIGN_NEW_DEVICE_ID', onAssignNewDeviceId);
       socket.off('STATE_UPDATE', onStateUpdate);
       socket.off('ROLE_ASSIGNED', onRoleAssigned);
       socket.off('SETUP_REQUIRED');

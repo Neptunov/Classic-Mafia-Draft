@@ -11,12 +11,11 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 🗺️ Development Roadmap
 
-The application is currently in the pre-release development phase, focusing on iterative architectural and visual updates.
-
-* **v0.2.1 - v0.3.0: Security Implementation.** Focus on encrypting all communications between the React frontend and Node backend. Includes hashing all sensitive information stored on the local machine to protect against state corruption or external modification.
-* **v0.3.1 - v0.3.5: Internationalization (i18n).** Expanding the modular dictionary structure to support dynamic UI language switching (e.g., seamlessly shifting between English and Russian without rebuilding the client).
-* **v0.3.6 - v0.4.0: Custom Asset Engine.** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
-* **v1.0.0: Stable Release.** Final functional version. Includes the packaging of the application into standard executable/installer formats, deprecating the CMD launch requirement.
+* **v0.2.2 - Challenge-Response Auth:** Neutralizing Wi-Fi sniffing vulnerabilities by replacing plaintext password transmission with HMAC (Hash-based Message Authentication Code) challenge-response handshakes, plus IP rate-limiting for brute-force protection.
+* **v0.2.3 - Input Sanitization (The Armor Patch):** Adding strict type and boundary checks to all WebSocket listeners to prevent server crashes from maliciously crafted payloads.
+* **v0.3.0 - Data Resilience & Storage Vault:** Overhauling the local `store.json` file. Implementing AES-256 encryption to render stolen files unreadable, and applying Reed-Solomon error correction encoding to automatically reconstruct corrupted bytes caused by unexpected power losses or disk failures.
+* **v0.3.1 - v0.3.5: Internationalization (i18n):** Expanding the modular dictionary structure to support dynamic UI language switching without rebuilding the client.
+* **v0.3.6 - v0.4.0: Custom Asset Engine:** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
 
 ## 🏗️ Room Management
 - **Admins** create tables (e.g., "Table 1", "Finals") via the Dashboard.
@@ -31,6 +30,11 @@ The application is currently in the pre-release development phase, focusing on i
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.2.1: The Identity Patch (Session Hardening)**
+- Replaced weak client-side ID generation with server-issued, 256-bit cryptographic hex tokens to prevent session hijacking.
+- The Node server now actively rejects all non-localhost WebSocket connections until the Master Password is fundamentally established.
+- Decoupled the React AuthContext from legacy backend listeners, strictly relying on server-authorized `ROLE_ASSIGNED` handshakes.
 
 **v0.2.0: The Admin Console Update**
 - Completely overhauled the Super Admin Dashboard (`Admin.jsx`) into a responsive sidebar architecture.

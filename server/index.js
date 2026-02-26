@@ -202,6 +202,13 @@ io.on('connection', (socket) => {
   const clientIp = socket.handshake.address;
   
   if (!adminCredentials) {
+    const isLocalhost = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp.includes('127.0.0.1');
+    
+    if (!isLocalhost) {
+      console.warn(`[SECURITY] Blocked remote connection from ${clientIp} (Setup Incomplete).`);
+      socket.disconnect(true);
+      return;
+    }
     socket.emit('SETUP_REQUIRED');
   }
   
@@ -217,8 +224,17 @@ io.on('connection', (socket) => {
   
   socket.emit('AVAILABLE_ROOMS', Object.keys(rooms));
 
-  socket.on('IDENTIFY', (deviceId) => {
+  socket.on('IDENTIFY', (clientDeviceId) => {
+    let deviceId = clientDeviceId;
+    
+    if (!deviceId || deviceId.length !== 64) {
+      const secureToken = crypto.randomBytes(32).toString('hex');
+      socket.emit('ASSIGN_NEW_DEVICE_ID', secureToken);
+      return;
+    }
+
     socket.deviceId = deviceId;
+    
     if (sessions[deviceId] && sessions[deviceId].roomId) {
       const roomId = sessions[deviceId].roomId;
       

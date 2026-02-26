@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wifi, ShieldAlert, Key, LogIn, MonitorSmartphone } from 'lucide-react';
-import { socket, deviceId } from '../utils/socket';
+import { socket, getDeviceId } from '../utils/socket';
 import { en } from '../locales/en';
 import packageJson from '../../package.json';
 import '../App.css'; 
