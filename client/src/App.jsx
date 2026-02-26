@@ -28,7 +28,6 @@ function AppContent() {
   useEffect(() => {
     function onConnect() { 
       setIsConnected(true); 
-      socket.emit('IDENTIFY', getDeviceId()); 
     }
     
     function onDisconnect() { setIsConnected(false); }

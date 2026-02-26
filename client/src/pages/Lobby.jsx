@@ -33,20 +33,23 @@ const Lobby = () => {
 
     const onRoomsUpdate = (rooms) => {
       setAvailableRooms(rooms);
-      
       if (selectedRoom && !rooms.includes(selectedRoom)) {
         setSelectedRoom('');
       }
     };
 
+    const onDebugUpdate = (state) => setIsDebugMode(state);
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('AVAILABLE_ROOMS', onRoomsUpdate);
+    socket.on('GLOBAL_DEBUG_UPDATE', onDebugUpdate);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('AVAILABLE_ROOMS', onRoomsUpdate);
+      socket.off('GLOBAL_DEBUG_UPDATE', onDebugUpdate);
     };
   }, [selectedRoom]);
 

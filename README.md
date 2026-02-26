@@ -11,7 +11,6 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 🗺️ Development Roadmap
 
-* **v0.2.5 - Cryptographic Cloaking (Payload Encryption):** Implementing Elliptic Curve Diffie-Hellman (ECDH) key exchanges to negotiate unique AES-256 session keys for every connected client. This encrypts all sensitive WebSocket traffic (like `PRIVATE_ROLE_REVEAL`), mathematically blinding local Wi-Fi packet sniffers.
 * **v0.3.0 - Data Resilience & Storage Vault:** Overhauling the local `store.json` file. Implementing AES-256 encryption to render stolen files unreadable, and applying Reed-Solomon error correction encoding to automatically reconstruct corrupted bytes caused by unexpected power losses or disk failures.
 * **v0.3.1 - v0.3.5: Internationalization (i18n):** Expanding the modular dictionary structure to support dynamic UI language switching without rebuilding the client.
 * **v0.3.6 - v0.4.0: Custom Asset Engine:** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
@@ -29,6 +28,12 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.2.5: Cryptographic Cloaking & Omniscient Debugger**
+- Implemented an impenetrable mathematical cloak over all Socket.io traffic. The application now uses the `P-256` Elliptic Curve to execute a Diffie-Hellman handshake, generating unique, military-grade AES-256 symmetric keys for every connected device.
+- All gameplay events, including `PRIVATE_ROLE_REVEAL` and `JOIN_ROOM`, are mathematically invisible over the local network, preventing packet-sniffing tools like Wireshark from extracting tournament data.
+- Engineered a global traffic interceptor that securely logs pre-encryption and post-decryption payloads natively in the console. Automatically activates when `package.json` includes a `-dev` tag, featuring automated credential redaction to prevent plaintext password leaks.
+- Fixed a UI lifecycle bug where the Lobby and Setup pages failed to inherit the `isDebugMode` state from the backend.
 
 **v0.2.4: Network Resilience (DDoS Protection)**
 - Implemented a socket middleware throttle that automatically drops packets if a single client emits more than 20 events per second, neutralizing automated spam scripts.

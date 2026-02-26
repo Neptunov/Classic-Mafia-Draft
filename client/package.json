@@ -1,7 +1,7 @@
 {
   "name": "mafia-draft-frontend",
   "private": true,
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@noble/curves": "^2.0.1",
     "crypto-js": "^4.2.0",
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",

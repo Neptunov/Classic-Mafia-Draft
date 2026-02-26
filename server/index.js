@@ -38,7 +38,7 @@ const DATA_SCHEMA_VERSION = 2;
 let adminCredentials = null;
 let rooms = {};  
 let sessions = {};
-let globalDebugMode = false;    
+let globalDebugMode = APP_VERSION.toLowerCase().includes('dev');    
 
 const loginAttempts = {}; 
 const loginChallenges = {};
@@ -46,6 +46,7 @@ const loginChallenges = {};
 const ipConnectionCounts = {};
 const MAX_CONNECTIONS_PER_IP = 5;
 
+const clientKeys = {};
 const clients = {}; 
 
 /**
@@ -130,6 +131,62 @@ function validatePayload(payload, rules) {
   
   return false;
 }
+
+// --- AES CRYPTOGRAPHY HELPERS ---
+function encryptPayload(payloadArgs, aesKeyBuffer) {
+  try {
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', aesKeyBuffer, iv);
+    let encrypted = cipher.update(JSON.stringify(payloadArgs), 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const hmac = crypto.createHmac('sha256', aesKeyBuffer).update(`${iv.toString('hex')}:${encrypted}`).digest('hex');
+    return `${iv.toString('hex')}:${encrypted}:${hmac}`;
+  } catch (err) { return null; }
+}
+
+function decryptPayload(encryptedString, aesKeyBuffer) {
+  try {
+    const parts = encryptedString.split(':');
+    if (parts.length !== 3) return null;
+    const [ivHex, ciphertext, hmacHex] = parts;
+
+    const expectedHmac = crypto.createHmac('sha256', aesKeyBuffer).update(`${ivHex}:${ciphertext}`).digest('hex');
+    if (!crypto.timingSafeEqual(Buffer.from(hmacHex, 'hex'), Buffer.from(expectedHmac, 'hex'))) {
+      console.warn('[SECURITY] HMAC Tampering Detected.');
+      return null;
+    }
+
+    const decipher = crypto.createDecipheriv('aes-256-cbc', aesKeyBuffer, Buffer.from(ivHex, 'hex'));
+    let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return JSON.parse(decrypted);
+  } catch (err) { 
+    console.error('[SECURITY] Backend Decryption failed:', err.message);
+    return null; 
+  }
+}
+
+// --- GLOBAL ENCRYPTION OVERRIDES ---
+io.to = function(target) {
+  return {
+    emit: function(event, ...args) {
+      const room = io.sockets.adapter.rooms.get(target);
+      if (room) {
+        for (const socketId of room) {
+          const socket = io.sockets.sockets.get(socketId);
+          if (socket) socket.emit(event, ...args); 
+        }
+      } else {
+        const socket = io.sockets.sockets.get(target);
+        if (socket) socket.emit(event, ...args);
+      }
+    }
+  };
+};
+
+io.emit = function(event, ...args) {
+  io.sockets.sockets.forEach(socket => socket.emit(event, ...args));
+};
 
 // --- PRODUCTION FILE SERVING ---
 
@@ -293,6 +350,101 @@ io.on('connection', (socket) => {
   const throttleTimer = setInterval(() => {
     messageCount = 0;
   }, 1000);
+  
+  // --- THE OMNISCIENT DEBUGGER (BACKEND) ---
+  const SENSITIVE_EVENTS = ['SETUP_ADMIN', 'ADMIN_LOGIN', 'CHANGE_PASSWORD'];
+
+  socket.onAny((event, ...args) => {
+    if (globalDebugMode && event !== 'ENCRYPTED_MESSAGE') {
+      const shortId = socket.id.substring(0, 5);
+      const logArgs = SENSITIVE_EVENTS.includes(event) ? ['[REDACTED_SECURITY_PAYLOAD]'] : args;
+      console.log(`\x1b[32m[IN  <- ${shortId}]\x1b[0m ${event}`, JSON.stringify(logArgs).substring(0, 150));
+    }
+  });
+
+  socket.onAnyOutgoing((event, ...args) => {
+    if (globalDebugMode && event !== 'ENCRYPTED_MESSAGE') {
+      const shortId = socket.id.substring(0, 5);
+      const logArgs = SENSITIVE_EVENTS.includes(event) ? ['[REDACTED_SECURITY_PAYLOAD]'] : args;
+      console.log(`\x1b[36m[OUT -> ${shortId}]\x1b[0m ${event}`, JSON.stringify(logArgs).substring(0, 150));
+    }
+  });
+  
+  // --- INITIAL STATE SYNC (THE LOBBY FIX) ---
+  socket.on('IDENTIFY', () => {
+    if (clientKeys[socket.id]) {
+      socket.emit('GLOBAL_DEBUG_UPDATE', globalDebugMode);
+    }
+  });
+
+  // --- OUTGOING ENCRYPTION INTERCEPTOR ---
+  const _emit = socket.emit;
+  socket.emit = function(event, ...args) {
+    const key = clientKeys[this.id];
+    
+    if (key && event !== 'ENCRYPTED_MESSAGE' && event !== 'KEY_EXCHANGE') {
+      let callback = undefined;
+      
+      if (args.length > 0 && typeof args[args.length - 1] === 'function') {
+        callback = args.pop();
+      }
+
+      if (globalDebugMode) {
+        const shortId = this.id.substring(0, 5);
+        console.log(`\x1b[35m[ENCRYPTOR OUT -> ${shortId}]\x1b[0m ${event}`, JSON.stringify(args).substring(0, 150));
+      }
+      
+      const payloadStr = encryptPayload(args, key);
+
+      if (callback) {
+        _emit.call(this, 'ENCRYPTED_MESSAGE', { event, payload: payloadStr }, callback);
+      } else {
+        _emit.call(this, 'ENCRYPTED_MESSAGE', { event, payload: payloadStr });
+      }
+    } else {
+      _emit.apply(this, [event, ...args]);
+    }
+  };
+  
+  socket.on('KEY_EXCHANGE', (clientPublicKeyHex, callback) => {
+    try {
+      const serverECDH = crypto.createECDH('prime256v1');
+      serverECDH.generateKeys();
+      
+      const rawSharedSecret = serverECDH.computeSecret(clientPublicKeyHex, 'hex');
+      
+      const aesKey = crypto.createHash('sha256').update(rawSharedSecret).digest();
+      
+      clientKeys[socket.id] = aesKey;
+      
+      callback({ success: true, serverPublicKey: serverECDH.getPublicKey('hex') });
+    } catch (err) {
+      console.error(`[SECURITY] Key exchange failed for ${clientIp}:`, err.message);
+      if (typeof callback === 'function') callback({ success: false });
+    }
+  });
+  
+  // --- INCOMING DECRYPTION ROUTER ---
+  socket.on('ENCRYPTED_MESSAGE', (wrapper, ackCallback) => {
+    if (!validatePayload(wrapper, { type: 'object', fields: { event: { type: 'string' }, payload: { type: 'string' } } })) return;
+
+    const key = clientKeys[socket.id];
+    if (!key) return;
+
+    const decryptedArgs = decryptPayload(wrapper.payload, key);
+    if (!Array.isArray(decryptedArgs)) return;
+
+    if (globalDebugMode) {
+      const shortId = socket.id.substring(0, 5);
+      console.log(`\x1b[35m[DECRYPTOR IN <- ${shortId}]\x1b[0m ${wrapper.event}`, JSON.stringify(decryptedArgs).substring(0, 150));
+    }
+
+    if (typeof ackCallback === 'function') {
+      decryptedArgs.push(ackCallback);
+    }
+
+    socket.listeners(wrapper.event).forEach(listener => listener(...decryptedArgs));
+  });
 
   socket.use((packet, next) => {
     messageCount++;
@@ -776,6 +928,7 @@ io.on('connection', (socket) => {
   socket.on('REQUEST_REGISTRY', () => {
     if (clients[socket.id]?.role === 'ADMIN') {
       broadcastToAdmins(); 
+	  socket.emit('GLOBAL_DEBUG_UPDATE', globalDebugMode);
     } else {
       socket.emit('ROLE_ASSIGNED', 'UNASSIGNED');
     }
@@ -928,6 +1081,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     const roomId = clients[socket.id]?.roomId;
+	delete clientKeys[socket.id];
     delete clients[socket.id]; 
     
     const clientIp = socket.handshake.address;
@@ -971,7 +1125,7 @@ if (fs.existsSync(STORE_FILE)) {
       adminCredentials = parsed.admin;
       rooms = parsed.rooms || {};
       sessions = parsed.sessions || {};
-	  globalDebugMode = parsed.globalDebugMode || false;
+	  globalDebugMode = APP_VERSION.toLowerCase().includes('dev') ? true : (parsed.globalDebugMode || false);
       
       console.log(`[STORAGE] Restored previous session data (Schema v${DATA_SCHEMA_VERSION}).`);
       

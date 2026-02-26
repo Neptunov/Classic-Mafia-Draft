@@ -28,13 +28,17 @@ const LoginView = () => {
   useEffect(() => {
     const onConnect = () => setIsConnected(true);
     const onDisconnect = () => setIsConnected(false);
+    
+    const onDebugUpdate = (state) => setIsDebugMode(state);
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.on('GLOBAL_DEBUG_UPDATE', onDebugUpdate); 
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.off('GLOBAL_DEBUG_UPDATE', onDebugUpdate); 
     };
   }, []);
 
