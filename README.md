@@ -11,7 +11,7 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 🗺️ Development Roadmap
 
-* **v0.2.3 - Input Sanitization (The Armor Patch):** Adding strict type and boundary checks to all WebSocket listeners to prevent server crashes from maliciously crafted payloads.
+* **v0.2.5 - Cryptographic Cloaking (Payload Encryption):** Implementing Elliptic Curve Diffie-Hellman (ECDH) key exchanges to negotiate unique AES-256 session keys for every connected client. This encrypts all sensitive WebSocket traffic (like `PRIVATE_ROLE_REVEAL`), mathematically blinding local Wi-Fi packet sniffers.
 * **v0.3.0 - Data Resilience & Storage Vault:** Overhauling the local `store.json` file. Implementing AES-256 encryption to render stolen files unreadable, and applying Reed-Solomon error correction encoding to automatically reconstruct corrupted bytes caused by unexpected power losses or disk failures.
 * **v0.3.1 - v0.3.5: Internationalization (i18n):** Expanding the modular dictionary structure to support dynamic UI language switching without rebuilding the client.
 * **v0.3.6 - v0.4.0: Custom Asset Engine:** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
@@ -29,6 +29,15 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.2.4: Network Resilience (DDoS Protection)**
+- Implemented a socket middleware throttle that automatically drops packets if a single client emits more than 20 events per second, neutralizing automated spam scripts.
+- Added a strict IP ledger that rejects handshakes if a single device attempts to open more than 5 simultaneous WebSocket connections.
+- Reduced the Socket.io maximum buffer size from 1MB down to 8KB to prevent server memory exhaustion from maliciously large payloads.
+
+**v0.2.3: Input Sanitization (The Armor Patch)**
+- Built a strict type-checking middleware for all WebSocket listeners. The server now actively drops malformed payloads, preventing crashes caused by unexpected data types.
+- Implemented hard character limits on strings (e.g., Room Codes and Player Names) and integer constraints on game logic to protect server memory and array indexing.
 
 **v0.2.2: Challenge-Response Auth & Rate Limiting**
 - Replaced plaintext password transmission with a secure cryptographic challenge-response system, protecting the Admin login from local Wi-Fi packet sniffing.

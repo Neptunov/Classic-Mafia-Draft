@@ -21,7 +21,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] }
+  cors: { origin: "*", methods: ["GET", "POST"] },
+  maxHttpBufferSize: 8192
 });
 
 const STORE_FILE = path.join(__dirname, 'store.json');
@@ -41,6 +42,9 @@ let globalDebugMode = false;
 
 const loginAttempts = {}; 
 const loginChallenges = {};
+
+const ipConnectionCounts = {};
+const MAX_CONNECTIONS_PER_IP = 5;
 
 const clients = {}; 
 
@@ -88,6 +92,43 @@ function verifyPasswordPlaintext(password) {
   
   const testHash = crypto.pbkdf2Sync(password, adminCredentials.salt, 10000, 64, 'sha512').toString('hex');
   return crypto.timingSafeEqual(Buffer.from(testHash, 'hex'), Buffer.from(adminCredentials.hash, 'hex'));
+}
+
+/**
+ * Strict payload validator to prevent malicious data from crashing the server.
+ * Evaluates types, string lengths, and numeric boundaries.
+ */
+function validatePayload(payload, rules) {
+  if (payload === null || payload === undefined) return false;
+  
+  if (rules.type === 'number') {
+    if (typeof payload !== 'number' || Number.isNaN(payload)) return false;
+    if (rules.min !== undefined && payload < rules.min) return false;
+    if (rules.max !== undefined && payload > rules.max) return false;
+    return true;
+  }
+  
+  if (rules.type === 'string') {
+    if (typeof payload !== 'string') return false;
+    if (rules.maxLength && payload.length > rules.maxLength) return false;
+    if (rules.minLength && payload.length < rules.minLength) return false;
+    return true;
+  }
+
+  if (rules.type === 'object') {
+    if (typeof payload !== 'object' || Array.isArray(payload)) return false;
+    
+    for (const key in rules.fields) {
+      if (!validatePayload(payload[key], rules.fields[key])) return false;
+    }
+    return true;
+  }
+  
+  if (rules.type === 'boolean') {
+    return typeof payload === 'boolean';
+  }
+  
+  return false;
 }
 
 // --- PRODUCTION FILE SERVING ---
@@ -225,9 +266,42 @@ function updateClientCounts(roomId) {
   broadcastToAdmins(); 
 }
 
+// --- SOCKET MIDDLEWARE (THE BOUNCER) ---
+io.use((socket, next) => {
+  const clientIp = socket.handshake.address;
+
+  if (!ipConnectionCounts[clientIp]) {
+    ipConnectionCounts[clientIp] = 0;
+  }
+
+  if (ipConnectionCounts[clientIp] >= MAX_CONNECTIONS_PER_IP) {
+    console.warn(`[SECURITY] DDoS Protection: Blocked excess connection from ${clientIp}`);
+    return next(new Error('Connection limit exceeded. Please close other tabs.'));
+  }
+
+  ipConnectionCounts[clientIp]++;
+  next();
+});
+
 // --- WEBSOCKET LOGIC ---
 io.on('connection', (socket) => {
   const clientIp = socket.handshake.address;
+  
+  let messageCount = 0;
+  const MAX_MESSAGES_PER_SECOND = 20;
+
+  const throttleTimer = setInterval(() => {
+    messageCount = 0;
+  }, 1000);
+
+  socket.use((packet, next) => {
+    messageCount++;
+    if (messageCount > MAX_MESSAGES_PER_SECOND) {
+      console.warn(`[SECURITY] Event spam detected from ${clientIp}. Dropping packet.`);
+      return next(new Error('Rate limit exceeded.')); 
+    }
+    next();
+  });
   
   if (!adminCredentials) {
     const isLocalhost = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp.includes('127.0.0.1');
@@ -294,7 +368,20 @@ io.on('connection', (socket) => {
     } 
   });
 
-  socket.on('JOIN_ROOM', ({ name, roomCode }) => {
+  socket.on('JOIN_ROOM', (payload) => {
+    if (!validatePayload(payload, { 
+      type: 'object', 
+      fields: { 
+        name: { type: 'string', minLength: 1, maxLength: 30 }, 
+        roomCode: { type: 'string', minLength: 1, maxLength: 20 } 
+      } 
+    })) {
+      console.warn(`[SECURITY] Invalid JOIN_ROOM payload blocked from ${clientIp}`);
+      return; 
+    }
+
+    const { name, roomCode } = payload;
+    
     if (!socket.deviceId) return;
     const roomId = roomCode.toUpperCase().trim();
     
@@ -380,11 +467,13 @@ io.on('connection', (socket) => {
   });
   
   socket.on('CREATE_ROOM', (roomCode) => {
+    if (!validatePayload(roomCode, { type: 'string', minLength: 1, maxLength: 20 })) return;
+    
     if (clients[socket.id]?.role !== 'ADMIN') {
       socket.emit('ROLE_ASSIGNED', 'UNASSIGNED'); 
       return;
     }
-    const roomId = roomCode?.toUpperCase().trim();
+    const roomId = roomCode.toUpperCase().trim();
     if (!roomId || rooms[roomId]) return; 
     
     rooms[roomId] = { gameState: getInitialGameState() };
@@ -393,8 +482,9 @@ io.on('connection', (socket) => {
     broadcastToAdmins();
     saveState();
   });
- 
+
   socket.on('DELETE_ROOM', (roomId) => {
+    if (!validatePayload(roomId, { type: 'string', minLength: 1, maxLength: 20 })) return;
     if (clients[socket.id]?.role !== 'ADMIN') return;
     if (!rooms[roomId] || rooms[roomId].gameState.areRolesLocked) return; 
 
@@ -480,7 +570,16 @@ io.on('connection', (socket) => {
     broadcastToAdmins();
   });
 
-  socket.on('SET_STREAM_LAYOUT', ({ targetSocketId, layout }) => {
+  socket.on('SET_STREAM_LAYOUT', (payload) => {
+    if (!validatePayload(payload, { 
+      type: 'object', 
+      fields: { 
+        targetSocketId: { type: 'string', maxLength: 100 }, 
+        layout: { type: 'string', maxLength: 15 } 
+      } 
+    })) return;
+
+    const { targetSocketId, layout } = payload;
     if (clients[socket.id]?.role !== 'ADMIN') return;
     
     const targetClient = clients[targetSocketId];
@@ -496,7 +595,17 @@ io.on('connection', (socket) => {
     broadcastToAdmins();
   });
 
-  socket.on('ASSIGN_ROLE', ({ targetSocketId, newRole }) => {
+  socket.on('ASSIGN_ROLE', (payload) => {
+    if (!validatePayload(payload, { 
+      type: 'object', 
+      fields: { 
+        targetSocketId: { type: 'string', maxLength: 100 }, 
+        newRole: { type: 'string', maxLength: 20 } 
+      } 
+    })) return;
+
+    const { targetSocketId, newRole } = payload;
+    
     if (clients[socket.id]?.role !== 'ADMIN') return;
     
     const targetClient = clients[targetSocketId];
@@ -532,7 +641,16 @@ io.on('connection', (socket) => {
     broadcastToAdmins();
   });
 
-  socket.on('TOGGLE_ROLE_LOCK', ({ roomId, booleanState }) => {
+  socket.on('TOGGLE_ROLE_LOCK', (payload) => {
+    if (!validatePayload(payload, { 
+      type: 'object', 
+      fields: { 
+        roomId: { type: 'string', maxLength: 20 }, 
+        booleanState: { type: 'boolean' } 
+      } 
+    })) return;
+
+    const { roomId, booleanState } = payload;
     if (clients[socket.id]?.role !== 'ADMIN' || !rooms[roomId] || rooms[roomId].gameState.status === 'IN_PROGRESS') return;
 
     const room = rooms[roomId];
@@ -555,6 +673,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('TOGGLE_GLOBAL_DEBUG', (booleanState, callback) => {
+    if (!validatePayload(booleanState, { type: 'boolean' })) return;
     if (clients[socket.id]?.role !== 'ADMIN') return callback?.({ success: false, message: 'Unauthorized' });
     
     const isAnyDrafting = Object.values(rooms).some(r => r.gameState.status !== 'PENDING');
@@ -699,6 +818,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('PICK_CARD', (slotIndex) => {
+    if (!validatePayload(slotIndex, { type: 'number', min: 0, max: 9 })) {
+      console.warn(`[SECURITY] Invalid PICK_CARD payload blocked from ${clientIp}`);
+      return;
+    }
+
     const roomId = clients[socket.id]?.roomId;
     if (!roomId) return;
     const gs = rooms[roomId].gameState;
@@ -710,7 +834,7 @@ io.on('connection', (socket) => {
     gs.revealedSlots.push(slotIndex);
     gs.results[gs.currentTurn] = { role, slotIndex };
     gs.isTrayUnlocked = false;
-	  gs.isCardRevealed = true;
+    gs.isCardRevealed = true;
 
     socket.emit('PRIVATE_ROLE_REVEAL', { role, slotIndex });
     io.to(roomId).emit('CARD_REVEALED', { seat: gs.currentTurn, role, cardIndex: slotIndex });
@@ -719,7 +843,7 @@ io.on('connection', (socket) => {
     else gs.currentTurn++;
     
     broadcastState(roomId);
-	  saveState();
+    saveState();
   });
 
   socket.on('FORCE_PICK', () => {
@@ -805,6 +929,15 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const roomId = clients[socket.id]?.roomId;
     delete clients[socket.id]; 
+    
+    const clientIp = socket.handshake.address;
+    if (ipConnectionCounts[clientIp] > 0) {
+      ipConnectionCounts[clientIp]--;
+    }
+    
+    if (ipConnectionCounts[clientIp] === 0) {
+      delete ipConnectionCounts[clientIp];
+    }
     
     if (roomId) {
       updateClientCounts(roomId);

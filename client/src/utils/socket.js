@@ -9,7 +9,5 @@ const SOCKET_URL = window.location.port === '5173'
   : window.location.origin;
 
 export const socket = io(SOCKET_URL);
-
-// Export getters and setters so React can manage the ID securely
 export const getDeviceId = () => localStorage.getItem('mafia_device_id');
 export const setDeviceId = (id) => localStorage.setItem('mafia_device_id', id);
