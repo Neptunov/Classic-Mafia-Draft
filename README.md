@@ -32,6 +32,11 @@ The application is currently in the pre-release development phase, focusing on i
 
 ## 📝 Changelog
 
+**v0.2.1: The Identity Patch (Session Hardening)**
+- Replaced weak client-side ID generation with server-issued, 256-bit cryptographic hex tokens to prevent session hijacking.
+- The Node server now actively rejects all non-localhost WebSocket connections until the Master Password is fundamentally established.
+- Decoupled the React AuthContext from legacy backend listeners, strictly relying on server-authorized `ROLE_ASSIGNED` handshakes.
+
 **v0.2.0: The Admin Console Update**
 - Completely overhauled the Super Admin Dashboard (`Admin.jsx`) into a responsive sidebar architecture.
 - Added live Overview Plates featuring dynamic draft timers and multi-table synchronization.

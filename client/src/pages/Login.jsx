@@ -17,7 +17,7 @@ import './Lobby.css';
 const LoginView = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const text = en.login; // Shortcut for the dictionary
+  const text = en.login;
   
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
