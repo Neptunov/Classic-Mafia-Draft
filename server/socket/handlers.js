@@ -628,6 +628,7 @@ export function initializeSockets(io) {
 	gs.isTrayUnlocked = false;
 	gs.isCardRevealed = false;
 	gs.draftStartTime = Date.now();
+	gs.isDebugMode = state.globalDebugMode;
 
 	broadcastState(roomId);
 	saveState();

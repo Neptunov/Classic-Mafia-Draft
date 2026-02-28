@@ -49,10 +49,6 @@ app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
-const INITIAL_DECK = [
-  'Citizen', 'Citizen', 'Citizen', 'Citizen', 'Citizen', 'Citizen',
-  'Sheriff', 'Mafia', 'Mafia', 'Don'
-];
 
 // --- BOOT SEQUENCE & CLI ---
 function getLocalIpAddress() {
