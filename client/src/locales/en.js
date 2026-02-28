@@ -133,6 +133,18 @@ export const en = {
     rolePlayer: "Player",
     roleJudge: "Judge",
     roleUnassigned: "Unassigned",
-    confirmLayout: "Change stream overlay alignment to {layout}?"
+    confirmLayout: "Change stream overlay alignment to {layout}?",
+	tabSettings: "Global Settings",
+    settingsTitle: "Tournament Settings & Custom Assets",
+    tournamentLang: "Global Language",
+    assetsTitle: "Custom Table Assets (v0.3.6)",
+    cardBackUrl: "Custom Card Back URL",
+    trayBgUrl: "Velvet Tray Texture URL",
+	customCitizen: "Citizen Card URL",
+    customSheriff: "Sheriff Card URL",
+    customMafia: "Mafia Card URL",
+    customDon: "Don Card URL",
+    saveSettings: "Apply Global Settings",
+    saveSuccess: "Settings applied successfully."
   }
 };

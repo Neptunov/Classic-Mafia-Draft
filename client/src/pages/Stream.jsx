@@ -6,11 +6,12 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { socket, getDeviceId } from '../utils/socket';
-import { en } from '../locales/en';
+import { useLanguage } from '../utils/LanguageContext';
 import '../App.css'; // Import our standard theme variables
 
 export default function StreamView() {
-  const text = en.stream; // Localization dictionary
+  const { text: dictionary } = useLanguage();
+  const text = dictionary.stream; // Localization dictionary
 
   const [isVerified, setIsVerified] = useState(false);
   const [clientIp, setClientIp] = useState('Detecting network IP...');

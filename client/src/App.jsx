@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './utils/AuthContext';
 import { socket, getDeviceId, setDeviceId } from './utils/socket';
+import { LanguageProvider } from './utils/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import LobbyView from './pages/Lobby';
@@ -94,10 +95,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

@@ -32,7 +32,15 @@ export const state = {
   loginChallenges: {},
   ipConnectionCounts: {},
   clientKeys: {},
-  clients: {}
+  clients: {},
+  globalSettings: {
+    language: 'en',
+    customAssets: { 
+      cardBack: '', 
+      trayBg: '',
+      cardFront: { citizen: '', sheriff: '', mafia: '', don: '' }
+    }
+  }
 };
 
 export const MAX_CONNECTIONS_PER_IP = 5;
@@ -59,7 +67,8 @@ export function saveState() {
     admin: state.adminCredentials,
     rooms: state.rooms,
     sessions: state.sessions,
-    globalDebugMode: state.globalDebugMode
+    globalDebugMode: state.globalDebugMode,
+	globalSettings: state.globalSettings
   };
   
   const encryptedPayload = encryptStorage(data);

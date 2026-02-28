@@ -7,12 +7,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { socket } from '../utils/socket';
-import { en } from '../locales/en';
+import { useLanguage } from '../utils/LanguageContext';
 import '../App.css';
 import './Player.css';
 
 const Player = () => {
-  const text = en.player;
+  const { text: dictionary } = useLanguage();
+  const text = dictionary.player;
   const [gameState, setGameState] = useState(null);
   const [revealedRole, setRevealedRole] = useState(null);
   const [isConnected, setIsConnected] = useState(socket.connected);

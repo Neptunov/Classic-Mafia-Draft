@@ -752,6 +752,21 @@ export function initializeSockets(io) {
 	  io.to(roomId).emit('CLOSE_PLAYER_REVEAL');      
 	}
 	});
+	
+	// --- GLOBAL SETTINGS & i18n ---
+  socket.on('REQUEST_GLOBAL_SETTINGS', () => {
+    socket.emit('GLOBAL_SETTINGS_UPDATE', state.globalSettings);
+  });
+
+  socket.on('UPDATE_GLOBAL_SETTINGS', (newSettings) => {
+    if (state.clients[socket.id]?.role !== 'ADMIN') return;
+    
+    state.globalSettings = { ...state.globalSettings, ...newSettings };
+    saveState();
+    
+    io.emit('GLOBAL_SETTINGS_UPDATE', state.globalSettings);
+    console.log(`[SYSTEM] Global settings updated. Active Language: ${state.globalSettings.language}`);
+  });
 
 	socket.on('disconnect', () => {
 	const roomId = state.clients[socket.id]?.roomId;

@@ -7,13 +7,14 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, ShieldAlert, Users, Play, Unlock, XSquare, RotateCcw, Wifi } from 'lucide-react';
 import { socket } from '../utils/socket';
-import { en } from '../locales/en';
+import { useLanguage } from '../utils/LanguageContext';
 import packageJson from '../../package.json';
 import '../App.css'; 
 import './Judge.css'; 
 
 const JudgeView = () => {
-  const text = en.judge;
+  const { text: dictionary } = useLanguage();
+  const text = dictionary.judge;
   const [gameState, setGameState] = useState(null);
   const [isConnected, setIsConnected] = useState(socket.connected);
 

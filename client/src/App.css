@@ -59,6 +59,7 @@ html, body, #root {
   color: var(--text-white);
   border: 1px solid #444;
   padding: 1rem;
+  padding-inline-start: 2.5rem; 
   border-radius: 4px;
   font-size: 1rem;
   transition: border-color 0.2s;

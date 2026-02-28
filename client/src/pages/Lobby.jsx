@@ -9,14 +9,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Wifi, ShieldAlert, Key, LogIn, MonitorSmartphone } from 'lucide-react';
 import { socket, getDeviceId } from '../utils/socket';
-import { en } from '../locales/en';
+import { useLanguage } from '../utils/LanguageContext';
 import packageJson from '../../package.json';
 import '../App.css'; 
 import './Lobby.css';
 
 const Lobby = () => {
   const navigate = useNavigate();
-  const text = en.lobby; 
+  const { text: dictionary } = useLanguage();
+  const text = dictionary.lobby; 
   
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [isDebugMode, setIsDebugMode] = useState(false);

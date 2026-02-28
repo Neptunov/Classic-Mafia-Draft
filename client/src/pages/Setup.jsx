@@ -8,12 +8,13 @@
 import React, { useState, useEffect } from 'react';
 import { Wifi, Lock, ShieldCheck } from 'lucide-react';
 import { socket } from '../utils/socket';
-import { en } from '../locales/en';
+import { useLanguage } from '../utils/LanguageContext';
 import packageJson from '../../package.json';
 import '../App.css'; 
 
 const Setup = () => {
-  const text = en.setup;
+  const { text: dictionary } = useLanguage();
+  const text = dictionary.setup;
   
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -79,7 +80,7 @@ const Setup = () => {
             <div className="input-group">
               <label htmlFor="setupPassword">{text.passLabel}</label>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
-                <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
+                <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', color: '#666' }} />
                 <input 
                   type="password" 
                   id="setupPassword"
@@ -100,7 +101,7 @@ const Setup = () => {
             <div className="input-group">
               <label htmlFor="confirmPassword">{text.confirmLabel}</label>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
-                <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
+                <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', color: '#666' }} />
                 <input 
                   type="password" 
                   id="confirmPassword"

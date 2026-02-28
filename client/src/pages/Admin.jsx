@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { socket } from '../utils/socket';
-import { en } from '../locales/en';
+import { useLanguage } from '../utils/LanguageContext';
 import { Menu, X, Monitor, Shield, Users, Plus, Wifi, ShieldAlert, Activity, Lock, Video, Trash2, Ghost } from 'lucide-react';
 import packageJson from '../../package.json';
 import '../App.css';
@@ -28,7 +28,8 @@ const LiveTimer = ({ startTime }) => {
 };
 
 const Admin = () => {
-  const text = en.admin;
+  const { text: dictionary } = useLanguage();
+  const text = dictionary.admin;
   
   const [rooms, setRooms] = useState({});
   const [registry, setRegistry] = useState([]); 
@@ -43,6 +44,14 @@ const Admin = () => {
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [securityMsg, setSecurityMsg] = useState('');
+  
+  const [globalLang, setGlobalLang] = useState('en');
+  const [cardBackUrl, setCardBackUrl] = useState('');
+  const [trayBgUrl, setTrayBgUrl] = useState('');
+  const [citizenUrl, setCitizenUrl] = useState('');
+  const [sheriffUrl, setSheriffUrl] = useState('');
+  const [mafiaUrl, setMafiaUrl] = useState('');
+  const [donUrl, setDonUrl] = useState('');
 
   useEffect(() => {
     const handleRoomsUpdate = (roomsData) => setRooms(roomsData);
@@ -309,6 +318,9 @@ const Admin = () => {
           <button className={`nav-item ${activeTab === 'security' ? 'active' : ''}`} onClick={() => navigateTo('security')}>
             <Shield size={18} /> {text.tabSecurity}
           </button>
+		  <button className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => navigateTo('settings')}>
+            <Monitor size={18} /> {text.tabSettings}
+          </button>
         </nav>
 
         <div style={{ padding: '1rem', borderTop: '1px solid #333' }}>
@@ -459,26 +471,101 @@ const Admin = () => {
                   <div className="input-group">
                     <label>{text.oldPassword}</label>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
+                      <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', color: '#666' }} />
                       <input type="password" required className="login-input" style={{ paddingLeft: '2.5rem' }} value={oldPass} onChange={e => setOldPass(e.target.value)} />
                     </div>
                   </div>
                   <div className="input-group">
                     <label>{text.newPassword}</label>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
+                      <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', color: '#666' }} />
                       <input type="password" required minLength={4} className="login-input" style={{ paddingLeft: '2.5rem' }} value={newPass} onChange={e => setNewPass(e.target.value)} />
                     </div>
                   </div>
                   <div className="input-group">
                     <label>{text.confirmPassword}</label>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
+                      <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', color: '#666' }} />
                       <input type="password" required minLength={4} className="login-input" style={{ paddingLeft: '2.5rem' }} value={confirmPass} onChange={e => setConfirmPass(e.target.value)} />
                     </div>
                   </div>
                   {securityMsg && <div style={{ color: securityMsg.type === 'error' ? 'var(--accent-red)' : '#2e7d32', fontSize: '0.9rem', fontWeight: 'bold' }}>{securityMsg.text}</div>}
                   <button type="submit" className="primary-btn" style={{ backgroundColor: 'var(--accent-red)' }}><ShieldAlert size={18} /> {text.changeBtn}</button>
+                </form>
+              </div>
+            </div>
+          )}
+		  
+		  {/* SETTINGS TAB */}
+          {activeTab === 'settings' && ( 
+            <div>
+              <h1 style={{ marginBottom: '2rem', fontSize: '2rem' }}>{text.settingsTitle}</h1>
+              <div className="login-card" style={{ maxWidth: '600px', margin: '0' }}>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    socket.emit('UPDATE_GLOBAL_SETTINGS', { 
+                      language: globalLang, 
+                      customAssets: { 
+                        cardBack: cardBackUrl, 
+                        trayBg: trayBgUrl,
+                        cardFront: { citizen: citizenUrl, sheriff: sheriffUrl, mafia: mafiaUrl, don: donUrl }
+                      }
+                    });
+                    alert(text.saveSuccess);
+                  }} 
+                  style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
+                >
+                  
+                  {/* LANGUAGE SELECTOR */}
+                  <div className="input-group">
+                    <label style={{ color: 'var(--accent-gold)' }}>{text.tournamentLang}</label>
+                    <select 
+                      className="login-select" 
+                      value={globalLang} 
+                      onChange={e => setGlobalLang(e.target.value)}
+                    >
+                      <option value="en">English</option>
+                      <option value="ru">Русский (Russian)</option>
+                      <option value="uk">Українська (Ukrainian)</option>
+                      <option value="he">עברית (Hebrew - RTL)</option>
+                    </select>
+                  </div>
+
+                  <div style={{ height: '1px', backgroundColor: '#333' }}></div>
+
+                  {/* ASSET PREP */}
+                  <div>
+                    <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-gold)' }}>{text.assetsTitle}</h3>
+                    <div className="input-group" style={{ marginBottom: '1rem' }}>
+                      <label>{text.cardBackUrl}</label>
+                      <input type="text" className="login-input" placeholder="https://..." value={cardBackUrl} onChange={e => setCardBackUrl(e.target.value)} />
+                    </div>
+                    <div className="input-group">
+                      <label>{text.trayBgUrl}</label>
+                      <input type="text" className="login-input" placeholder="https://..." value={trayBgUrl} onChange={e => setTrayBgUrl(e.target.value)} />
+                    </div>
+                  </div>
+				  <div className="input-group" style={{ marginBottom: '1rem', marginTop: '1rem' }}>
+                    <label style={{ color: 'var(--accent-red)' }}>{text.customCitizen}</label>
+                    <input type="text" className="login-input" placeholder="https://..." value={citizenUrl} onChange={e => setCitizenUrl(e.target.value)} />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: '1rem' }}>
+                    <label style={{ color: 'var(--accent-gold)' }}>{text.customSheriff}</label>
+                    <input type="text" className="login-input" placeholder="https://..." value={sheriffUrl} onChange={e => setSheriffUrl(e.target.value)} />
+                  </div>
+                  <div className="input-group" style={{ marginBottom: '1rem' }}>
+                    <label style={{ color: '#888' }}>{text.customMafia}</label>
+                    <input type="text" className="login-input" placeholder="https://..." value={mafiaUrl} onChange={e => setMafiaUrl(e.target.value)} />
+                  </div>
+                  <div className="input-group">
+                    <label style={{ color: '#888' }}>{text.customDon}</label>
+                    <input type="text" className="login-input" placeholder="https://..." value={donUrl} onChange={e => setDonUrl(e.target.value)} />
+                  </div>
+
+                  <button type="submit" className="primary-btn" style={{ backgroundColor: '#2e7d32' }}>
+                    {text.saveSettings}
+                  </button>
                 </form>
               </div>
             </div>

@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { Wifi, ShieldAlert, Lock, ArrowLeft } from 'lucide-react';
 import { socket } from '../utils/socket';
 import { useAuth } from '../utils/AuthContext';
-import { en } from '../locales/en';
+import { useLanguage } from '../utils/LanguageContext';
 import packageJson from '../../package.json';
 import CryptoJS from 'crypto-js';
 import '../App.css'; 
@@ -18,7 +18,8 @@ import './Lobby.css';
 const LoginView = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const text = en.login;
+  const { text: dictionary } = useLanguage();
+  const text = dictionary.login;
   
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -111,7 +112,7 @@ const LoginView = () => {
             <div className="input-group">
               <label htmlFor="adminPassword">{text.passwordLabel}</label>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
-                <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
+                <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', color: '#666' }} />
                 <input 
                   type="password" 
                   id="adminPassword"

@@ -11,8 +11,9 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 🗺️ Development Roadmap
 
-* **v0.3.1 - v0.3.5: Internationalization (i18n):** Expanding the modular dictionary structure to support dynamic UI language switching without rebuilding the client.
-* **v0.3.6 - v0.4.0: Custom Asset Engine:** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
+**v0.3.1 - v0.4.0:** 
+* Internationalization (i18n):** Expanding the modular dictionary structure to support dynamic UI language switching without rebuilding the client.
+* Custom Asset Engine:** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
 
 ## 🏗️ Room Management
 - **Admins** create tables (e.g., "Table 1", "Finals") via the Dashboard.
@@ -27,6 +28,13 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.3.1: The Internationalization (i18n) Engine**
+- Engineered a React Context Provider (`LanguageContext.jsx`) that distributes centralized localization dictionaries to all connected UI components. Changes to the active language now trigger instantaneous, zero-refresh re-renders across all tablets and stream overlays.
+- Swept the entire CSS architecture (`App.css`, `Admin.css`, etc.) to replace hardcoded directional properties (e.g., `padding-left`, `left`) with modern CSS Logical Properties (`padding-inline-start`, `insetInlineStart`). The browser DOM will now automatically mirror the entire application layout when Right-to-Left (RTL) languages like Hebrew are selected.
+- Expanded the Super Admin Dashboard (`Admin.jsx`) with a new Settings tab. Tournament organizers can now remotely change the global language and prepare external URLs for the upcoming Custom Asset Engine (v0.3.6).
+- The `core/state.js` storage vault was upgraded to persistently save the `globalSettings` object, ensuring language and asset selections survive server reboots and power losses.
+- Added a complete, 1:1 translation dictionary (`ru.js`) alongside the base English module (`en.js`).
 
 **v0.3.0: Data Resilience & The Storage Vault**
 - Completely refactored the 1000+ line `index.js` into a scalable, domain-driven architecture (`/core` and `/socket` modules), isolating state management from network routing.
