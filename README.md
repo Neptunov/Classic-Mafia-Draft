@@ -11,7 +11,6 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 🗺️ Development Roadmap
 
-* **v0.3.0 - Data Resilience & Storage Vault:** Overhauling the local `store.json` file. Implementing AES-256 encryption to render stolen files unreadable, and applying Reed-Solomon error correction encoding to automatically reconstruct corrupted bytes caused by unexpected power losses or disk failures.
 * **v0.3.1 - v0.3.5: Internationalization (i18n):** Expanding the modular dictionary structure to support dynamic UI language switching without rebuilding the client.
 * **v0.3.6 - v0.4.0: Custom Asset Engine:** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
 
@@ -28,6 +27,14 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.3.0: Data Resilience & The Storage Vault**
+- Completely refactored the 1000+ line `index.js` into a scalable, domain-driven architecture (`/core` and `/socket` modules), isolating state management from network routing.
+- Replaced the vulnerable `store.json` plaintext file with a physically secure vault. Tournament data is now encrypted using AES-256-GCM, with the cryptographic key mathematically derived from the host server's physical MAC address. Stolen data cannot be decrypted on a different machine.
+- Implemented a WebAssembly engine (`@subspace/reed-solomon-erasure.wasm`) to shatter the encrypted tournament data into 4 Data Shards and 2 Parity Shards (`/storage/shard_X.dat`). The server can now mathematically recreate missing or corrupted data on boot if sector failures occur.
+- Upgraded the disk writing pipeline to utilize Atomic Swaps (`.tmp` -> `.dat`). The server is now completely immune to data corruption caused by sudden power losses during disk I/O.
+- Engineered a backwards-compatible upgrade pipeline that automatically intercepts legacy `store.json` files from v0.2.x, injects missing schema fields, upgrades them to Schema v2, and locks them into the new WASM vault.
+- The backend terminal `reset` command now recursively destroys the sharded vault directory.
 
 **v0.2.5: Cryptographic Cloaking & Omniscient Debugger**
 - Implemented an impenetrable mathematical cloak over all Socket.io traffic. The application now uses the `P-256` Elliptic Curve to execute a Diffie-Hellman handshake, generating unique, military-grade AES-256 symmetric keys for every connected device.

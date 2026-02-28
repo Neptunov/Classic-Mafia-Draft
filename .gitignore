@@ -11,6 +11,9 @@ client/dist-ssr/
 server/store.json
 .env
 .env.local
+server/storage/
+*.tmp
+*.dat
 
 # --- OS & Editor Files ---
 .DS_Store
