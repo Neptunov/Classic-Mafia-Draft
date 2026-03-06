@@ -151,6 +151,7 @@ export function loadState() {
         state.adminCredentials = parsed.admin;
         state.rooms = parsed.rooms || {};
         state.sessions = parsed.sessions || {};
+		if (parsed.globalSettings) state.globalSettings = parsed.globalSettings;
         saveState(); 
         fs.unlinkSync(legacyStore); 
         console.log('[STORAGE] Migration complete. Legacy file destroyed.');
@@ -219,6 +220,7 @@ export function loadState() {
       state.rooms = parsed.rooms || {};
       state.sessions = parsed.sessions || {};
       state.globalDebugMode = APP_VERSION.toLowerCase().includes('dev') ? true : (parsed.globalDebugMode || false);
+	  if (parsed.globalSettings) state.globalSettings = parsed.globalSettings;
       
       console.log(`[STORAGE] Vault unlocked. Tournament state restored (Schema v${DATA_SCHEMA_VERSION}).`);
     } else {

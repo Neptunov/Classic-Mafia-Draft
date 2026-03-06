@@ -6,10 +6,10 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { socket } from './socket';
 import { en } from '../locales/en';
 import { ru } from '../locales/ru';
-// import { uk } from '../locales/uk';
+import { ua } from '../locales/ua';
 import { he } from '../locales/he';
 
-const dictionaries = { en, ru, he };
+const dictionaries = { en, ru, he, ua };
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {

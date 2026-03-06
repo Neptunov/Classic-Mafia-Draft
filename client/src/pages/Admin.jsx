@@ -276,7 +276,7 @@ const Admin = () => {
                     <div key={seatNum} className="admin-result-row">
                       <span style={{ color: '#888' }}>{text.seatLabel.replace('{number}', seatNum)}</span>
                       <span style={{ color: data ? (data.role === 'Sheriff' || data.role === 'Don' ? 'var(--accent-gold)' : 'var(--text-white)') : '#444' }}>
-                        {data ? data.role : '...'}
+                        {data ? (text['role' + data.role] || data.role) : '...'}
                       </span>
                     </div>
                   );
@@ -527,7 +527,7 @@ const Admin = () => {
                     >
                       <option value="en">English</option>
                       <option value="ru">Русский (Russian)</option>
-                      <option value="uk">Українська (Ukrainian)</option>
+                      <option value="ua">Українська (Ukrainian)</option>
                       <option value="he">עברית (Hebrew - RTL)</option>
                     </select>
                   </div>

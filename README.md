@@ -29,6 +29,10 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 📝 Changelog
 
+**v0.3.3: Dynamic Role Localization & Ukrainian Support**
+- Fixed an edge case in the Judge Panel and Admin Dashboard where player roles (Citizen, Mafia, etc.) were bypassing the `LanguageContext` and rendering static server-side strings. Role displays now dynamically construct dictionary keys (e.g., `roleCitizen`) to support live language switching.
+- Officially integrated the manual Ukrainian translation module (`ua.js`) into the global dictionary engine.
+
 **v0.3.2: Localization & State Persistence**
 - Officially added complete translation dictionaries for Hebrew (`he.js`). The application now fully supports Right-to-Left (RTL) DOM rendering and structural layout mirroring for Israeli users.
 - Fixed a race condition where the active UI language would briefly default back to English upon browser refresh. The `LanguageContext` now caches the active dictionary in the browser's `localStorage` and synchronizes seamlessly with the Socket.io `connect` lifecycle.
