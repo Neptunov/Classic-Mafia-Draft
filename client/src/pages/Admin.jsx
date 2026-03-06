@@ -135,8 +135,8 @@ const Admin = () => {
           <div>
             <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '2rem' }}>{roomId}</h1>
             <div style={{ display: 'flex', gap: '1rem', color: '#888', fontWeight: 'bold' }}>
-              <span>Status: {gs.status === 'PENDING' ? (gs.areRolesLocked ? text.statusWaiting : text.statusUnlocked) : gs.status === 'IN_PROGRESS' ? text.statusInProgress : text.statusCompleted}</span>
-              <span>Time: <LiveTimer startTime={gs.draftStartTime} /></span>
+              <span>{ text.statusText } {gs.status === 'PENDING' ? (gs.areRolesLocked ? text.statusWaiting : text.statusUnlocked) : gs.status === 'IN_PROGRESS' ? text.statusInProgress : text.statusCompleted}</span>
+              <span>{ text.timeText } <LiveTimer startTime={gs.draftStartTime} /></span>
             </div>
           </div>
           
@@ -402,7 +402,7 @@ const Admin = () => {
             <div>
               <h1 style={{ marginBottom: '2rem', fontSize: '2rem' }}>{text.tabStreams}</h1>
               {streams.length === 0 ? (
-                <div style={{ color: '#666', fontStyle: 'italic' }}>No stream sources connected.</div>
+                <div style={{ color: '#666', fontStyle: 'italic' }}>{text.streamMissing}.</div>
               ) : (
                 <div className="overview-grid">
                   {streams.map((stream) => (

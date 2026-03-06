@@ -6,27 +6,36 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { socket } from './socket';
 import { en } from '../locales/en';
 import { ru } from '../locales/ru';
-// Note: We will import ru, uk, he here in Phase 2
+// import { uk } from '../locales/uk';
+import { he } from '../locales/he';
 
-const dictionaries = { en, ru }; // Expand this as we add files
+const dictionaries = { en, ru, he };
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguage] = useState('en');
+  const [language, setLanguage] = useState(() => localStorage.getItem('tournament_lang') || 'en');
 
   useEffect(() => {
-    // Listen for the Admin changing the global tournament settings
-    socket.on('GLOBAL_SETTINGS_UPDATE', (settings) => {
-      if (settings?.language) setLanguage(settings.language);
-    });
-    
-    // Request initial settings on mount
+    const handleSettingsUpdate = (settings) => {
+      if (settings?.language) {
+        setLanguage(settings.language);
+        localStorage.setItem('tournament_lang', settings.language); 
+      }
+    };
+
+    socket.on('GLOBAL_SETTINGS_UPDATE', handleSettingsUpdate);
+
     if (socket.connected) socket.emit('REQUEST_GLOBAL_SETTINGS');
-    
-    return () => socket.off('GLOBAL_SETTINGS_UPDATE');
+
+    const onConnect = () => socket.emit('REQUEST_GLOBAL_SETTINGS');
+    socket.on('connect', onConnect);
+
+    return () => {
+      socket.off('GLOBAL_SETTINGS_UPDATE', handleSettingsUpdate);
+      socket.off('connect', onConnect);
+    };
   }, []);
 
-  // --- THE RTL FLIP LOGIC ---
   useEffect(() => {
     document.documentElement.dir = language === 'he' ? 'rtl' : 'ltr';
     document.documentElement.lang = language;

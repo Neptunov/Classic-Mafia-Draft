@@ -29,6 +29,11 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 📝 Changelog
 
+**v0.3.2: Localization & State Persistence**
+- Officially added complete translation dictionaries for Hebrew (`he.js`). The application now fully supports Right-to-Left (RTL) DOM rendering and structural layout mirroring for Israeli users.
+- Fixed a race condition where the active UI language would briefly default back to English upon browser refresh. The `LanguageContext` now caches the active dictionary in the browser's `localStorage` and synchronizes seamlessly with the Socket.io `connect` lifecycle.
+- Swept the React component tree to identify and extract residual hardcoded text strings, ensuring 100% of the UI is governed by the dynamic dictionary engine.
+
 **v0.3.1: The Internationalization (i18n) Engine**
 - Engineered a React Context Provider (`LanguageContext.jsx`) that distributes centralized localization dictionaries to all connected UI components. Changes to the active language now trigger instantaneous, zero-refresh re-renders across all tablets and stream overlays.
 - Swept the entire CSS architecture (`App.css`, `Admin.css`, etc.) to replace hardcoded directional properties (e.g., `padding-left`, `left`) with modern CSS Logical Properties (`padding-inline-start`, `insetInlineStart`). The browser DOM will now automatically mirror the entire application layout when Right-to-Left (RTL) languages like Hebrew are selected.
@@ -161,5 +166,6 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 **Original Mafia Game Concept:** Dmitry Davidoff (1986)  
 **Current Classic Mafia Rules:** FIIM (2013); iMafia (2022); MafGame (2023); EmotionGames (2024)
 **UI Assets:** Velvet texture background designed by Freepik author @benzoix
+**UI Localisation:** Ukranian - Ezzyslav Malyshkin (2026)
 
 *Note: This project utilizes AI assistance for syntax generation, layout optimization, and debugging. Core application logic and system design are directed by the human developer.*

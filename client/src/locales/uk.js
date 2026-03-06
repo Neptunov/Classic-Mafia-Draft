@@ -1,10 +1,10 @@
 /**
- * @file src/locales/en.js
- * @description English localization dictionary. 
+ * @file src/locales/uk.js
+ * @description Ukrainian localization dictionary. 
  * Centralizes static text for the UI to support future internationalization (i18n).
  */
  
-export const en = {
+export const uk = {
   lobby: {
     title: "Classic Mafia",
     subtitle: "Identify this device to join the draft",
