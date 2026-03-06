@@ -1,3 +1,9 @@
+/**
+ * @file server/socket/broadcasters.js
+ * @description Socket.io emission wrappers and state broadcasting logic.
+ * Ensures synchronized game states are securely transmitted to authorized clients,
+ * and intercepts global emit calls to apply end-to-end payload encryption.
+ */
 import { state } from '../core/state.js';
 
 let io;

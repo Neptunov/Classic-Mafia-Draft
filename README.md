@@ -9,10 +9,18 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 4. Start the server: `cd server && npm run start`
 5. Open your browser to the provided local address (e.g., `http://localhost:3000`) and complete the web-based initialization to securely create your master password!
 
-## 🗺️ Development Roadmap
+## 🗺️ Development Roadmap (WIP, will be updated)
 
-**v0.3.6 - v0.4.0:** 
-* Custom Asset Engine:** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
+- [x] v0.1.0 - v0.1.3: Core draft logic, synchronized state, basic admin controls.
+- [x] v0.2.0 - v0.2.4: Cryptographic logins, Streamer Mode (OBS), Single-Device Mode.
+- [x] v0.3.0: The Storage Vault (WASM Reed-Solomon Erasure Coding, AES-GCM Encryption).
+- [x] v0.3.1 - v0.3.3: Internationalization (Context Providers, RTL Support, RU/UK/HE Dictionaries).
+- [x] v0.3.4: Hybrid HTTP Bridge & WebP Image Optimization Pipeline.
+- [ ] v0.3.5: The `.mafpack` Engine (`adm-zip` archiving, Pack import/export).
+- [ ] v0.3.6: Dynamic Pack Manager UI (Instant texture swapping via Admin Panel).
+- [ ] v0.4.0: The Cropping Studio (In-browser image editor, final compilation).
+- [ ] v0.4.1 - v0.5.0: Streamlined installation and update procedures for end-users, alongside a dedicated macOS port for native Apple Silicon execution.
+- [ ] v1.0.0: Official Release (Post-beta testing and QA validation).
 
 ## 🏗️ Room Management
 - **Admins** create tables (e.g., "Table 1", "Finals") via the Dashboard.
@@ -27,6 +35,12 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.3.4: Custom Asset Engine - Phase 1 (The HTTP Bridge)**
+- Engineered a token-exchange system allowing authenticated WebSocket sessions to request temporary, 256-bit cryptographic Bearer tokens. This enables secure REST API file uploads without exposing the server to unauthenticated POST requests.
+- Integrated `multer` and `sharp` to intercept large image uploads in memory. The server strictly enforces a 10MB payload limit and utilizes WebAssembly to instantly compress assets into the highly optimized WebP format before committing them to the physical disk.
+- Established a secure directory structure within the `/storage` vault (`/temp`, `/packs`, `/active`) to isolate user-generated content and prepare for `.mafpack` compilation.
+- Performed a comprehensive codebase sweep, standardizing all backend core files with JSDoc headers and operational comments for long-term maintainability.
 
 **v0.3.3: Dynamic Role Localization & Ukrainian Support**
 - Fixed an edge case in the Judge Panel and Admin Dashboard where player roles (Citizen, Mafia, etc.) were bypassing the `LanguageContext` and rendering static server-side strings. Role displays now dynamically construct dictionary keys (e.g., `roleCitizen`) to support live language switching.

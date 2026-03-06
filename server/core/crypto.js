@@ -1,3 +1,9 @@
+/**
+ * @file server/core/crypto.js
+ * @description Cryptographic engine for authentication and data protection.
+ * Implements hardware-bound AES-256-GCM encryption for the physical storage vault, 
+ * HMAC validation for WebSocket sessions, and ECDH key exchanges.
+ */
 import crypto from 'crypto';
 import { state } from './state.js';
 import os from 'os';

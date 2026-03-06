@@ -9,6 +9,7 @@ import { socket } from '../utils/socket';
 import { useLanguage } from '../utils/LanguageContext';
 import { Menu, X, Monitor, Shield, Users, Plus, Wifi, ShieldAlert, Activity, Lock, Video, Trash2, Ghost } from 'lucide-react';
 import packageJson from '../../package.json';
+import { useAuth } from '../utils/AuthContext';
 import '../App.css';
 import './Admin.css';
 
@@ -28,6 +29,8 @@ const LiveTimer = ({ startTime }) => {
 };
 
 const Admin = () => {
+  const { uploadToken } = useAuth();
+	
   const { text: dictionary } = useLanguage();
   const text = dictionary.admin;
   
@@ -116,6 +119,34 @@ const Admin = () => {
     if (gs.status === 'IN_PROGRESS') return <div className="plate-status" style={{ color: '#1976d2' }}>{text.statusInProgress}</div>;
     if (gs.areRolesLocked) return <div className="plate-status" style={{ color: '#2e7d32' }}>{text.statusWaiting}</div>;
     return <div className="plate-status" style={{ color: 'var(--accent-red)' }}>{text.statusUnlocked}</div>;
+  };
+
+  const handleTestUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await fetch('/api/assets/upload-temp', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${uploadToken}` // Inject the secure token
+        },
+        body: formData
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert(`Success! Saved to server as: ${data.file}`);
+      } else {
+        alert(`Upload Failed: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error during upload.');
+    }
   };
 
   // --- ROOM DETAILED RENDERER ---
@@ -561,6 +592,15 @@ const Admin = () => {
                   <div className="input-group">
                     <label style={{ color: '#888' }}>{text.customDon}</label>
                     <input type="text" className="login-input" placeholder="https://..." value={donUrl} onChange={e => setDonUrl(e.target.value)} />
+                  </div>
+				  <div className="admin-panel-section" style={{ marginTop: '1rem', border: '1px dashed var(--accent-gold)' }}>
+                    <h3 style={{ color: 'var(--accent-gold)', marginBottom: '1rem' }}>TEST: HTTP Upload Bridge</h3>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleTestUpload} 
+                      className="login-input" 
+                    />
                   </div>
 
                   <button type="submit" className="primary-btn" style={{ backgroundColor: '#2e7d32' }}>

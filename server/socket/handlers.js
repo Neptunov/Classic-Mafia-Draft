@@ -1,3 +1,9 @@
+/**
+ * @file server/socket/handlers.js
+ * @description Primary WebSocket event listener and request router.
+ * Manages client connections, device identification, authentication, room creation, 
+ * and handles the core gameplay loop (drafting, picking, revealing).
+ */
 import { state, saveState, MAX_CONNECTIONS_PER_IP } from '../core/state.js';
 import { encryptPayload, decryptPayload, verifyAdmin, hashPassword, verifyPasswordPlaintext } from '../core/crypto.js';
 import { validatePayload, getInitialGameState, shuffle, INITIAL_DECK } from '../core/game.js';
@@ -255,10 +261,13 @@ export function initializeSockets(io) {
 	  if (socket.deviceId) {
 		state.sessions[socket.deviceId] = { name: 'Tournament Admin', role: 'ADMIN', roomId: 'GLOBAL' };
 	  }
+	  
+	  const uploadToken = crypto.randomBytes(32).toString('hex');
+      state.uploadTokens[uploadToken] = socket.deviceId;
 
 	  socket.emit('ROLE_ASSIGNED', 'ADMIN');
 	  broadcastToAdmins();
-	  if (typeof callback === 'function') callback({ success: true });
+	  if (typeof callback === 'function') callback({ success: true, uploadToken });
 	  
 	} else {
 	  attemptData.count += 1;

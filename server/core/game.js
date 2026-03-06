@@ -1,8 +1,21 @@
+/**
+ * @file server/core/game.js
+ * @description Core game logic, state initialization, and payload validation.
+ * Contains pure functions for managing the tournament ruleset, deck manipulation,
+ * and ensuring incoming network payloads match expected schemas.
+ */
+
 export const INITIAL_DECK = [
   'Citizen', 'Citizen', 'Citizen', 'Citizen', 'Citizen', 'Citizen',
   'Sheriff', 'Mafia', 'Mafia', 'Don'
 ];
 
+/**
+ * Validates an incoming payload against a defined strict schema to prevent injection attacks.
+ * @param {any} payload - The raw data received from the client.
+ * @param {Object} rules - The schema definition (type, min/max length, nested fields).
+ * @returns {boolean} True if the payload matches the rules, false otherwise.
+ */
 export function validatePayload(payload, rules) {
   if (payload === null || payload === undefined) return false;
   
@@ -36,6 +49,11 @@ export function validatePayload(payload, rules) {
   return false;
 }
 
+
+/**
+ * Generates a fresh, sanitized game state object for a new tournament room.
+ * @returns {Object} The default game state schema.
+ */
 export function getInitialGameState() {
   return {
     status: 'PENDING',
@@ -55,6 +73,12 @@ export function getInitialGameState() {
   };
 }
 
+
+/**
+ * Cryptographically shuffles an array using the Fisher-Yates algorithm.
+ * @param {Array} array - The array to shuffle (e.g., the role deck).
+ * @returns {Array} The shuffled array.
+ */
 export function shuffle(array) {
   let currentIndex = array.length, randomIndex;
   while (currentIndex !== 0) {

@@ -68,7 +68,7 @@ const LoginView = () => {
       socket.emit('ADMIN_LOGIN', hmacResponse, (loginResponse) => {
         if (loginResponse.success) {
           setPassword('');
-          login(); 
+          login(loginResponse.uploadToken); 
           navigate('/admin');
         } else {
           setErrorMsg(loginResponse.message || text.defaultError);

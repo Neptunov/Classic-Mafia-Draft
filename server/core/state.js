@@ -1,3 +1,9 @@
+/**
+ * @file server/core/state.js
+ * @description Centralized in-memory state management and persistent storage vault.
+ * Handles WASM-powered Reed-Solomon erasure coding for file self-healing, 
+ * atomic disk writes, and backwards-compatible schema migrations.
+ */
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -40,7 +46,9 @@ export const state = {
       trayBg: '',
       cardFront: { citizen: '', sheriff: '', mafia: '', don: '' }
     }
-  }
+  },
+  /** @description In-memory mapping of temporary HTTP Bearer tokens to authorized Admin device IDs. */
+  uploadTokens: {}
 };
 
 export const MAX_CONNECTIONS_PER_IP = 5;
