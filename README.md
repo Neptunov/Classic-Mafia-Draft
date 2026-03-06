@@ -11,8 +11,7 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 🗺️ Development Roadmap
 
-**v0.3.1 - v0.4.0:** 
-* Internationalization (i18n):** Expanding the modular dictionary structure to support dynamic UI language switching without rebuilding the client.
+**v0.3.6 - v0.4.0:** 
 * Custom Asset Engine:** Building an interface for tournament organizers to upload and manage custom card backs, velvet tray textures, and specific role artwork directly from the Admin console.
 
 ## 🏗️ Room Management
@@ -28,6 +27,10 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.3.3: Dynamic Role Localization & Ukrainian Support**
+- Fixed an edge case in the Judge Panel and Admin Dashboard where player roles (Citizen, Mafia, etc.) were bypassing the `LanguageContext` and rendering static server-side strings. Role displays now dynamically construct dictionary keys (e.g., `roleCitizen`) to support live language switching.
+- Officially integrated the manual Ukrainian translation module (`ua.js`) into the global dictionary engine.
 
 **v0.3.2: Localization & State Persistence**
 - Officially added complete translation dictionaries for Hebrew (`he.js`). The application now fully supports Right-to-Left (RTL) DOM rendering and structural layout mirroring for Israeli users.
@@ -166,6 +169,6 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 **Original Mafia Game Concept:** Dmitry Davidoff (1986)  
 **Current Classic Mafia Rules:** FIIM (2013); iMafia (2022); MafGame (2023); EmotionGames (2024)
 **UI Assets:** Velvet texture background designed by Freepik author @benzoix
-**UI Localisation:** Ukranian - Ezzyslav Malyshkin (2026)
+**UI Localisation:** Ukrainian - Ezzyslav Malyshkin (2026)
 
 *Note: This project utilizes AI assistance for syntax generation, layout optimization, and debugging. Core application logic and system design are directed by the human developer.*

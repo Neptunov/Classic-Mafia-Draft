@@ -178,7 +178,7 @@ const JudgeView = () => {
                   <span>{text.seat.replace('{number}', seatNum)}</span>
                   
                   <span className={styles.text}>
-                    {role ? role : text.emptySeat}
+                    {role ? (text['role' + role] || role) : text.emptySeat}
                   </span>
                 </div>
               );
