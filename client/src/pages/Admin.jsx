@@ -148,6 +148,29 @@ const Admin = () => {
       alert('Network error during upload.');
     }
   };
+  
+  const handleTestCompile = async () => {
+    try {
+      const res = await fetch('/api/assets/compile', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${uploadToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: 'My First Pack', author: 'Tournament Admin', version: '1.0.0' })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert(`Pack Compiled Successfully! ID: ${data.pack.id}`);
+      } else {
+        alert(`Compilation Failed: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error during compilation.');
+    }
+  };
 
   // --- ROOM DETAILED RENDERER ---
   const renderRoomDetails = (roomId) => {
@@ -602,6 +625,14 @@ const Admin = () => {
                       className="login-input" 
                     />
                   </div>
+				  <button 
+                      type="button" 
+                      onClick={handleTestCompile} 
+                      className="primary-btn" 
+                      style={{ marginTop: '1rem', backgroundColor: '#1976d2' }}
+                    >
+                      Test: Compile .mafpack
+                    </button>
 
                   <button type="submit" className="primary-btn" style={{ backgroundColor: '#2e7d32' }}>
                     {text.saveSettings}
