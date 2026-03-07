@@ -14,12 +14,16 @@ const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => localStorage.getItem('tournament_lang') || 'en');
+  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
-    const handleSettingsUpdate = (settings) => {
-      if (settings?.language) {
-        setLanguage(settings.language);
-        localStorage.setItem('tournament_lang', settings.language); 
+    const handleSettingsUpdate = (newSettings) => {
+      if (newSettings) {
+        setSettings(newSettings);
+        if (newSettings.language) {
+          setLanguage(newSettings.language);
+          localStorage.setItem('tournament_lang', newSettings.language);
+        }
       }
     };
 
@@ -44,7 +48,7 @@ export const LanguageProvider = ({ children }) => {
   const text = dictionaries[language] || en;
 
   return (
-    <LanguageContext.Provider value={{ language, text }}>
+    <LanguageContext.Provider value={{ language, text, settings }}> {/* Add settings here */}
       {children}
     </LanguageContext.Provider>
   );

@@ -12,6 +12,9 @@ server/store.json
 .env
 .env.local
 server/storage/
+server/assets/active
+server/assets/packs
+server/assets/temp
 *.tmp
 *.dat
 

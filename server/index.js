@@ -25,7 +25,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use('/api/assets', assetRouter);
-app.use('/assets/custom', express.static(ACTIVE_DIR));
+app.use('/api/assets/active', express.static(ACTIVE_DIR));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] }, maxHttpBufferSize: 8192 });
 

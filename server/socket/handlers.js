@@ -365,6 +365,7 @@ export function initializeSockets(io) {
 	if (state.clients[socket.id].role === 'STREAM') {
 	  socket.join(state.clients[socket.id].roomId);
 	  io.to(socket.id).emit('ROLE_ASSIGNED', 'STREAM');
+	  io.to(socket.id).emit('UPDATE_LAYOUT', state.clients[socket.id].streamLayout);
 	  return;
 	}
 
@@ -380,6 +381,7 @@ export function initializeSockets(io) {
 
 	io.to(socket.id).emit('ROLE_ASSIGNED', 'PENDING_STREAM');
 	io.to(socket.id).emit('STREAM_IP', clientIp); 
+	io.to(socket.id).emit('UPDATE_LAYOUT', state.clients[socket.id].streamLayout);
 	broadcastToAdmins();
 	});
 

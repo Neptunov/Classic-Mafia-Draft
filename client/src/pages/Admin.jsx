@@ -31,8 +31,20 @@ const LiveTimer = ({ startTime }) => {
 const Admin = () => {
   const { uploadToken } = useAuth();
 	
-  const { text: dictionary } = useLanguage();
+  const { text: dictionary, settings } = useLanguage();
   const text = dictionary.admin;
+  const activePack = settings?.customAssets?.activePack || 'default';
+
+  // --- ASSET ROUTING LOGIC ---
+  const getAssetPath = (assetName) => {
+    if (activePack === 'default') {
+      if (assetName === 'trayBg') return '/velvet-tray.jpg';
+      if (assetName === 'cardBack') return '/roles/card-back.jpg';
+      return `/roles/${assetName}.jpg`;
+    } else {
+      return `/api/assets/active/${assetName}.webp?v=${activePack}`;
+    }
+  };
   
   const [rooms, setRooms] = useState({});
   const [registry, setRegistry] = useState([]); 
@@ -49,12 +61,8 @@ const Admin = () => {
   const [securityMsg, setSecurityMsg] = useState('');
   
   const [globalLang, setGlobalLang] = useState('en');
-  const [cardBackUrl, setCardBackUrl] = useState('');
-  const [trayBgUrl, setTrayBgUrl] = useState('');
-  const [citizenUrl, setCitizenUrl] = useState('');
-  const [sheriffUrl, setSheriffUrl] = useState('');
-  const [mafiaUrl, setMafiaUrl] = useState('');
-  const [donUrl, setDonUrl] = useState('');
+  const [installedPacks, setInstalledPacks] = useState([]);
+  const [selectedPack, setSelectedPack] = useState('default');
 
   useEffect(() => {
     const handleRoomsUpdate = (roomsData) => setRooms(roomsData);
@@ -85,6 +93,19 @@ const Admin = () => {
 	  socket.off('ADMIN_ERROR');
     };
   }, []);
+  
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      fetch('/api/assets/packs', {
+        headers: { 'Authorization': `Bearer ${uploadToken}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setInstalledPacks(data.packs);
+      })
+      .catch(err => console.error("Failed to load packs", err));
+    }
+  }, [activeTab, uploadToken]);
 
   const handleCreateRoom = (e) => {
     e.preventDefault();
@@ -146,6 +167,29 @@ const Admin = () => {
     } catch (err) {
       console.error(err);
       alert('Network error during upload.');
+    }
+  };
+  
+  const handleTestCompile = async () => {
+    try {
+      const res = await fetch('/api/assets/compile', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${uploadToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: 'My First Pack', author: 'Tournament Admin', version: '1.0.0' })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert(`Pack Compiled Successfully! ID: ${data.pack.id}`);
+      } else {
+        alert(`Compilation Failed: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error during compilation.');
     }
   };
 
@@ -290,8 +334,8 @@ const Admin = () => {
                   return (
                     <div 
                       key={i} 
-                      className={`mini-card ${isRevealed ? 'revealed' : ''} ${!trueRole ? 'face-down' : ''}`}
-                      style={{ backgroundImage: trueRole && !isRevealed ? `url('/roles/${trueRole.toLowerCase()}.jpg')` : undefined }}
+                      className={`mini-card ${isRevealed ? 'revealed' : 'face-down'}`}
+                      style={{ backgroundImage: trueRole && !isRevealed ? `url('${getAssetPath(trueRole.toLowerCase())}')` : `url('${getAssetPath('cardBack')}')` }}
                     />
                   );
                 })}
@@ -533,20 +577,25 @@ const Admin = () => {
               <h1 style={{ marginBottom: '2rem', fontSize: '2rem' }}>{text.settingsTitle}</h1>
               <div className="login-card" style={{ maxWidth: '600px', margin: '0' }}>
                 <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    socket.emit('UPDATE_GLOBAL_SETTINGS', { 
-                      language: globalLang, 
-                      customAssets: { 
-                        cardBack: cardBackUrl, 
-                        trayBg: trayBgUrl,
-                        cardFront: { citizen: citizenUrl, sheriff: sheriffUrl, mafia: mafiaUrl, don: donUrl }
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      
+                      if (selectedPack !== 'default') {
+                        await fetch(`/api/assets/activate/${selectedPack}`, {
+                          method: 'POST',
+                          headers: { 'Authorization': `Bearer ${uploadToken}` }
+                        });
                       }
-                    });
-                    alert(text.saveSuccess);
-                  }} 
-                  style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
-                >
+
+                      socket.emit('UPDATE_GLOBAL_SETTINGS', { 
+                        language: globalLang, 
+                        customAssets: { activePack: selectedPack } 
+                      });
+                      
+                      alert(text.saveSuccess);
+                    }} 
+                    style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
+                  >
                   
                   {/* LANGUAGE SELECTOR */}
                   <div className="input-group">
@@ -565,33 +614,24 @@ const Admin = () => {
 
                   <div style={{ height: '1px', backgroundColor: '#333' }}></div>
 
-                  {/* ASSET PREP */}
+                  {/* PACK MANAGER */}
                   <div>
-                    <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-gold)' }}>{text.assetsTitle}</h3>
+                    <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-gold)' }}>Tournament Texture Pack</h3>
                     <div className="input-group" style={{ marginBottom: '1rem' }}>
-                      <label>{text.cardBackUrl}</label>
-                      <input type="text" className="login-input" placeholder="https://..." value={cardBackUrl} onChange={e => setCardBackUrl(e.target.value)} />
+                      <label>Active Pack</label>
+                      <select 
+                        className="login-select" 
+                        value={selectedPack} 
+                        onChange={e => setSelectedPack(e.target.value)}
+                      >
+                        <option value="default">Default Classic Theme</option>
+                        {installedPacks.map(pack => (
+                          <option key={pack.id} value={pack.filename}>
+                            {pack.name} (v{pack.version}) - by {pack.author}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="input-group">
-                      <label>{text.trayBgUrl}</label>
-                      <input type="text" className="login-input" placeholder="https://..." value={trayBgUrl} onChange={e => setTrayBgUrl(e.target.value)} />
-                    </div>
-                  </div>
-				  <div className="input-group" style={{ marginBottom: '1rem', marginTop: '1rem' }}>
-                    <label style={{ color: 'var(--accent-red)' }}>{text.customCitizen}</label>
-                    <input type="text" className="login-input" placeholder="https://..." value={citizenUrl} onChange={e => setCitizenUrl(e.target.value)} />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: '1rem' }}>
-                    <label style={{ color: 'var(--accent-gold)' }}>{text.customSheriff}</label>
-                    <input type="text" className="login-input" placeholder="https://..." value={sheriffUrl} onChange={e => setSheriffUrl(e.target.value)} />
-                  </div>
-                  <div className="input-group" style={{ marginBottom: '1rem' }}>
-                    <label style={{ color: '#888' }}>{text.customMafia}</label>
-                    <input type="text" className="login-input" placeholder="https://..." value={mafiaUrl} onChange={e => setMafiaUrl(e.target.value)} />
-                  </div>
-                  <div className="input-group">
-                    <label style={{ color: '#888' }}>{text.customDon}</label>
-                    <input type="text" className="login-input" placeholder="https://..." value={donUrl} onChange={e => setDonUrl(e.target.value)} />
                   </div>
 				  <div className="admin-panel-section" style={{ marginTop: '1rem', border: '1px dashed var(--accent-gold)' }}>
                     <h3 style={{ color: 'var(--accent-gold)', marginBottom: '1rem' }}>TEST: HTTP Upload Bridge</h3>
@@ -602,6 +642,14 @@ const Admin = () => {
                       className="login-input" 
                     />
                   </div>
+				  <button 
+                      type="button" 
+                      onClick={handleTestCompile} 
+                      className="primary-btn" 
+                      style={{ marginTop: '1rem', backgroundColor: '#1976d2' }}
+                    >
+                      Test: Compile .mafpack
+                    </button>
 
                   <button type="submit" className="primary-btn" style={{ backgroundColor: '#2e7d32' }}>
                     {text.saveSettings}

@@ -16,8 +16,8 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 - [x] v0.3.0: The Storage Vault (WASM Reed-Solomon Erasure Coding, AES-GCM Encryption).
 - [x] v0.3.1 - v0.3.3: Internationalization (Context Providers, RTL Support, RU/UK/HE Dictionaries).
 - [x] v0.3.4: Hybrid HTTP Bridge & WebP Image Optimization Pipeline.
-- [ ] v0.3.5: The `.mafpack` Engine (`adm-zip` archiving, Pack import/export).
-- [ ] v0.3.6: Dynamic Pack Manager UI (Instant texture swapping via Admin Panel).
+- [x] v0.3.5: The `.mafpack` Engine (`adm-zip` archiving, Pack import/export).
+- [x] v0.3.6: Dynamic Pack Manager UI (Instant texture swapping via Admin Panel).
 - [ ] v0.4.0: The Cropping Studio (In-browser image editor, final compilation).
 - [ ] v0.4.1 - v0.5.0: Streamlined installation and update procedures for end-users, alongside a dedicated macOS port for native Apple Silicon execution.
 - [ ] v1.0.0: Official Release (Post-beta testing and QA validation).
@@ -35,6 +35,17 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.3.6: Dynamic Pack Manager & Bug Fixes**
+- Completely refactored the Admin Settings tab. Tournament organizers can now view a dynamically fetched list of installed `.mafpack` archives and instantly swap the active server textures via a clean dropdown interface.
+- Upgraded the `Player` and `Stream` React components to listen to the global `activePack` state. The UI now dynamically routes image requests to the Express `/api/assets/active/` endpoint, instantly updating graphics across all devices without requiring a page refresh.
+- Fixed an issue where the Stream overlay would accidentally reset its room assignment back to 'GLOBAL' upon a browser refresh.
+- Fixed an RTL layout bug causing incorrect localization rendering for stream overlay alignment (Left/Center/Right) when Hebrew was the active language.
+
+**v0.3.5: The `.mafpack` Archiving Engine**
+- Integrated `adm-zip` to compile raw, optimized WebP textures from the server's temporary vault into distributable `.mafpack` files.
+- The compilation engine automatically injects a `manifest.json` into every `.mafpack`, stamping it with a unique cryptographic ID, author name, and versioning metadata.
+- Built a REST endpoint capable of extracting and purging the active texture directory. Admins can now instantly swap the server's live textures by unzipping a selected `.mafpack` directly into the Express static serving folder.
 
 **v0.3.4: Custom Asset Engine - Phase 1 (The HTTP Bridge)**
 - Engineered a token-exchange system allowing authenticated WebSocket sessions to request temporary, 256-bit cryptographic Bearer tokens. This enables secure REST API file uploads without exposing the server to unauthenticated POST requests.

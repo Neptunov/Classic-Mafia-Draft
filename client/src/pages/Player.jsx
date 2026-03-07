@@ -12,11 +12,24 @@ import '../App.css';
 import './Player.css';
 
 const Player = () => {
-  const { text: dictionary } = useLanguage();
+  const { text: dictionary, settings } = useLanguage();
   const text = dictionary.player;
   const [gameState, setGameState] = useState(null);
   const [revealedRole, setRevealedRole] = useState(null);
   const [isConnected, setIsConnected] = useState(socket.connected);
+  const activePack = settings?.customAssets?.activePack || 'default';
+
+  // --- ASSET ROUTING LOGIC ---
+  const getAssetPath = (assetName) => {
+    if (activePack === 'default') {
+      if (assetName === 'trayBg') return '/velvet-tray.jpg';
+      if (assetName === 'cardBack') return '/roles/card-back.jpg';
+      return `/roles/${assetName}.jpg`;
+    } else {
+      return `/api/assets/active/${assetName}.webp?v=${activePack}`;
+    }
+  };
+  
   
   const [clientSeat, setClientSeat] = useState('Unassigned');
   
@@ -101,7 +114,7 @@ const Player = () => {
   }
 
   return (
-    <div className="player-tray-container">
+    <div className="player-tray-container" style={{ backgroundImage: `url('${getAssetPath('trayBg')}')` }}>
       
       {/* BACKGROUND WARNINGS */}
       {warningElement}
@@ -123,7 +136,7 @@ const Player = () => {
               onClick={() => handlePickCard(slotIndex)}
             >
               <div className="card-inner">
-                <div className="card-front"></div>
+                <div className="card-front" style={{ backgroundImage: `url('${getAssetPath('cardBack')}')` }}></div>
               </div>
             </div>
           ))}
@@ -138,7 +151,7 @@ const Player = () => {
                 onClick={() => handlePickCard(slotIndex)}
               >
                 <div className="card-inner">
-                  <div className="card-front"></div>
+                  <div className="card-front" style={{ backgroundImage: `url('${getAssetPath('cardBack')}')` }}></div>
                 </div>
               </div>
             ))}
@@ -158,11 +171,11 @@ const Player = () => {
         <div className="cinematic-overlay">
           <div className="revealed-card-container">
             <div className="revealed-card-inner">
-              <div className="card-front"></div>
-              <div 
-                className="card-back" 
-                style={{ backgroundImage: `url('/roles/${revealedRole.toLowerCase()}.jpg')` }}
-              ></div>
+              <div className="card-front" style={{ backgroundImage: `url('${getAssetPath('cardBack')}')` }}></div>
+				<div 
+				  className="card-back" 
+				  style={{ backgroundImage: `url('${getAssetPath(revealedRole.toLowerCase())}')` }}
+				></div>
             </div>
           </div>
           

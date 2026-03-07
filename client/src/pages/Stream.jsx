@@ -7,16 +7,29 @@
 import { useState, useEffect, useRef } from 'react';
 import { socket, getDeviceId } from '../utils/socket';
 import { useLanguage } from '../utils/LanguageContext';
-import '../App.css'; // Import our standard theme variables
+import '../App.css';
 
 export default function StreamView() {
-  const { text: dictionary } = useLanguage();
-  const text = dictionary.stream; // Localization dictionary
+  const { text: dictionary, settings } = useLanguage();
+  const text = dictionary.stream; 
 
   const [isVerified, setIsVerified] = useState(false);
   const [clientIp, setClientIp] = useState('Detecting network IP...');
   const [gameState, setGameState] = useState(null);
   const [layout, setLayout] = useState('center');
+  const activePack = settings?.customAssets?.activePack || 'default';
+
+  // --- UPDATE ASSET ROUTING LOGIC ---
+  const getAssetPath = (assetName) => {
+    if (!assetName) return '';
+    if (activePack === 'default') {
+      if (assetName === 'trayBg') return '/velvet-tray.jpg';
+      if (assetName === 'cardBack') return '/roles/card-back.jpg';
+      return `/roles/${assetName}.jpg`;
+    } else {
+      return `/api/assets/active/${assetName}.webp?v=${activePack}`;
+    }
+  };
   
   const [queue, setQueue] = useState([]);
   const [currentReveal, setCurrentReveal] = useState(null);
@@ -27,7 +40,7 @@ export default function StreamView() {
   const revealStartTime = useRef(0); 
 
   useEffect(() => {
-    socket.emit('REQUEST_STREAM_ACCESS', { userAgent: navigator.userAgent, deviceId: getDeviceId });
+    socket.emit('REQUEST_STREAM_ACCESS', { userAgent: navigator.userAgent, deviceId: getDeviceId() });
 
     const handleRoleAssigned = (role) => setIsVerified(role === 'STREAM');
     const handleReveal = (data) => setQueue((prevQueue) => [...prevQueue, data]);
@@ -163,14 +176,14 @@ export default function StreamView() {
         }
         
         .stream-card-front { 
-          background-image: url('/roles/card-back.jpg'); 
+          background-image: url('${getAssetPath('cardBack')}'); 
           background-size: cover; background-position: center; 
           border: 2px solid #333; 
         }
         
         .stream-card-back {
           transform: rotateY(180deg); 
-          background-image: url('/roles/${currentReveal?.role?.toLowerCase()}.jpg');
+          background-image: url('${getAssetPath(currentReveal?.role?.toLowerCase() || 'citizen')}');
           background-size: cover; background-position: center;
           border: 2px solid var(--accent-red);
         }
