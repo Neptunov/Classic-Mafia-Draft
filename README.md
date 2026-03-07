@@ -36,12 +36,15 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 📝 Changelog
 
+<<<<<<< HEAD
 **v0.3.6: Dynamic Pack Manager & Bug Fixes**
 - Completely refactored the Admin Settings tab. Tournament organizers can now view a dynamically fetched list of installed `.mafpack` archives and instantly swap the active server textures via a clean dropdown interface.
 - Upgraded the `Player` and `Stream` React components to listen to the global `activePack` state. The UI now dynamically routes image requests to the Express `/api/assets/active/` endpoint, instantly updating graphics across all devices without requiring a page refresh.
 - Fixed an issue where the Stream overlay would accidentally reset its room assignment back to 'GLOBAL' upon a browser refresh.
 - Fixed an RTL layout bug causing incorrect localization rendering for stream overlay alignment (Left/Center/Right) when Hebrew was the active language.
 
+=======
+>>>>>>> d84d66062dcebd224af462d11d7236cef98df16b
 **v0.3.5: The `.mafpack` Archiving Engine**
 - Integrated `adm-zip` to compile raw, optimized WebP textures from the server's temporary vault into distributable `.mafpack` files.
 - The compilation engine automatically injects a `manifest.json` into every `.mafpack`, stamping it with a unique cryptographic ID, author name, and versioning metadata.

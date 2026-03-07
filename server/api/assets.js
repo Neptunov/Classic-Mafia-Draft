@@ -18,7 +18,11 @@ import sharp from 'sharp';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // --- ASSET DIRECTORY ARCHITECTURE ---
+<<<<<<< HEAD
 export const ASSETS_DIR = path.join(__dirname, '../assets');
+=======
+export const ASSETS_DIR = path.join(__dirname, '../storage/assets');
+>>>>>>> d84d66062dcebd224af462d11d7236cef98df16b
 export const TEMP_DIR = path.join(ASSETS_DIR, 'temp');     
 export const PACKS_DIR = path.join(ASSETS_DIR, 'packs');   
 export const ACTIVE_DIR = path.join(ASSETS_DIR, 'active'); 
@@ -149,10 +153,6 @@ router.post('/activate/:filename', requireAdminToken, (req, res) => {
     activeFiles.forEach(file => fs.unlinkSync(path.join(ACTIVE_DIR, file)));
 
     // Unzip the selected pack directly into the active serving directory
-    
-
-//[Image of file archiving process]
-
     const zip = new AdmZip(packPath);
     zip.extractAllTo(ACTIVE_DIR, true);
 
