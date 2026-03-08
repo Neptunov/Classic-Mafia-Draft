@@ -33,7 +33,7 @@ jobs:
 
       - name: Package Executable (Windows)
         run: |
-          caxa -i . -m "node server/index.js" -e "CAXA=true" -o ClassicMafiaDraft-Win64.exe
+          caxa --input . --output ClassicMafiaDraft-Win64.exe -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js" "--caxa"
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
