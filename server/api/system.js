@@ -8,7 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
-import { INTERNAL_ROOT, isCompiled } from '../core/paths.js';
+import { INTERNAL_ROOT, APP_ROOT, isCompiled } from '../core/paths.js';
 
 const router = express.Router();
 const REPO_URL = 'https://api.github.com/repos/Neptunov/Classic-Mafia-Draft/releases/latest';
@@ -102,7 +102,7 @@ router.post('/apply-update', (req, res) => {
     res.json({ success: true, message: 'Server shutting down for update...' });
 
     try {
-      const child = spawn(tempPath, ['/SILENT'], {
+      const child = spawn(tempPath, ['/SILENT', `/DIR=${APP_ROOT}`], {
         detached: true,
         stdio: 'ignore'
       });
