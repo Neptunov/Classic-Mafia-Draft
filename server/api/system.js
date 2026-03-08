@@ -78,30 +78,40 @@ router.post('/apply-update', (req, res) => {
   console.log(`[SYSTEM] Downloading update to ${tempPath}...`);
 
   const file = fs.createWriteStream(tempPath);
+  
   https.get(INSTALLER_URL, (response) => {
     if (response.statusCode === 301 || response.statusCode === 302) {
       https.get(response.headers.location, (redirectRes) => {
         redirectRes.pipe(file);
-        file.on('finish', executeUpdate);
+        file.on('finish', () => file.close(prepareExecution)); 
       });
     } else {
       response.pipe(file);
-      file.on('finish', executeUpdate);
+      file.on('finish', () => file.close(prepareExecution));
     }
   });
 
+  function prepareExecution() {
+    console.log('[SYSTEM] Download complete. Waiting for Windows OS file locks to clear...');
+    
+    setTimeout(executeUpdate, 1500);
+  }
+
   function executeUpdate() {
-    file.close();
-    console.log('[SYSTEM] Download complete. Spawning silent installer...');
+    console.log('[SYSTEM] Spawning silent installer...');
     res.json({ success: true, message: 'Server shutting down for update...' });
 
-    const child = spawn(tempPath, ['/SILENT'], {
-      detached: true,
-      stdio: 'ignore'
-    });
-    child.unref();
-    
-    setTimeout(() => process.exit(0), 1000); 
+    try {
+      const child = spawn(tempPath, ['/SILENT'], {
+        detached: true,
+        stdio: 'ignore'
+      });
+      child.unref();
+      
+      setTimeout(() => process.exit(0), 1000); 
+    } catch (err) {
+      console.error('[SYSTEM] Failed to spawn updater:', err);
+    }
   }
 });
 
