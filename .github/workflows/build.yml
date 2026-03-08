@@ -17,11 +17,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (${{ matrix.arch }})
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          architecture: ${{ matrix.arch }} 
 
       - name: Build React Client
         working-directory: ./client
@@ -33,20 +32,37 @@ jobs:
         working-directory: ./server
         run: npm install
 
-      - name: Package Executable (Windows ${{ matrix.arch }})
+      - name: Download Portable Node Binary
         shell: bash
         run: |
-          npx caxa --input . --output ClassicMafiaDraft-Win${{ matrix.arch == 'x64' && '64' || '86' }}.exe -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js" CAXA_BUILD
+          if [ "${{ matrix.arch }}" == "x64" ]; then
+            curl -o node.exe https://nodejs.org/dist/v20.11.1/win-x64/node.exe
+          else
+            curl -o node.exe https://nodejs.org/dist/v20.11.1/win-x86/node.exe
+          fi
+
+      - name: Package Portable App
+        shell: pwsh
+        run: |
+          mkdir Release
+          # Move the raw node executable and our code into the Release folder
+          mv node.exe Release/
+          mv server Release/
+          mkdir Release/client
+          mv client/dist Release/client/dist
           
+          # Compress everything into a pristine .zip file
+          Compress-Archive -Path Release/* -DestinationPath ClassicMafiaDraft-Win${{ matrix.arch == 'x64' && '64' || '86' }}.zip
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ClassicMafiaDraft-Win${{ matrix.arch == 'x64' && '64' || '86' }}
-          path: ClassicMafiaDraft-Win*.exe
+          path: ClassicMafiaDraft-Win*.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: ClassicMafiaDraft-Win*.exe
+          files: ClassicMafiaDraft-Win*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
