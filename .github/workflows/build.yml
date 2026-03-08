@@ -1,0 +1,49 @@
+name: Compile Standalone Binaries
+
+on:
+  push:
+    tags:
+      - 'v*' 
+
+jobs:
+  build:
+    name: Build Executables
+    runs-on: windows-latest 
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build React Client
+        working-directory: ./client
+        run: |
+          npm install
+          npm run build
+
+      - name: Install Server Dependencies
+        working-directory: ./server
+        run: |
+          npm install
+          npm install -g caxa
+
+      - name: Package Executable (Windows)
+        run: |
+          caxa -i . -m "node server/index.js" -e "CAXA=true" -o ClassicMafiaDraft-Win64.exe
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClassicMafiaDraft-Windows
+          path: ClassicMafiaDraft-Win64.exe
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ClassicMafiaDraft-Win64.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

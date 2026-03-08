@@ -11,16 +11,17 @@ import { createRequire } from 'module';
 import { encryptStorage, decryptStorage } from './crypto.js';
 import { ReedSolomonErasure } from '@subspace/reed-solomon-erasure.wasm';
 import { getInitialGameState } from './game.js';
+import { APP_ROOT } from './paths.js';
 
 const require = createRequire(import.meta.url);
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
+const __dirname = APP_ROOT;
+const packageData = JSON.parse(fs.readFileSync(path.join(__dirname, 'server/package.json'), 'utf8'));
 
 export const APP_VERSION = packageData.version;
 export const DATA_SCHEMA_VERSION = 2;
 
 // --- 🛡️ NEW VAULT ARCHITECTURE ---
-export const STORAGE_DIR = path.join(__dirname, '../storage');
+export const STORAGE_DIR = path.join(__dirname, 'server/storage');
 const DATA_SHARDS = 4;
 const PARITY_SHARDS = 2;
 const TOTAL_SHARDS = DATA_SHARDS + PARITY_SHARDS;
