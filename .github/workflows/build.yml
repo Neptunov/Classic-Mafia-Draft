@@ -3,21 +3,25 @@ name: Compile Standalone Binaries
 on:
   push:
     tags:
-      - 'v*' 
+      - 'v*'
 
 jobs:
   build:
     name: Build Executables
-    runs-on: windows-latest 
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, x86] 
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js (${{ matrix.arch }})
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          architecture: ${{ matrix.arch }} 
 
       - name: Build React Client
         working-directory: ./client
@@ -27,24 +31,22 @@ jobs:
 
       - name: Install Server Dependencies
         working-directory: ./server
-        run: |
-          npm install
-          npm install -g caxa
+        run: npm install
 
-      - name: Package Executable (Windows)
+      - name: Package Executable (Windows ${{ matrix.arch }})
         shell: bash
         run: |
-          npx caxa --input . --output ClassicMafiaDraft-Win64.exe -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js" CAXA_BUILD
+          npx caxa --input . --output ClassicMafiaDraft-Win${{ matrix.arch == 'x64' && '64' || '86' }}.exe -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js" CAXA_BUILD
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ClassicMafiaDraft-Windows
-          path: ClassicMafiaDraft-Win64.exe
+          name: ClassicMafiaDraft-Win${{ matrix.arch == 'x64' && '64' || '86' }}
+          path: ClassicMafiaDraft-Win*.exe
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: ClassicMafiaDraft-Win64.exe
+          files: ClassicMafiaDraft-Win*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
