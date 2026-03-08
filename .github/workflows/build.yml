@@ -41,7 +41,7 @@ jobs:
             curl -o node.exe https://nodejs.org/dist/v20.11.1/win-x86/node.exe
           fi
 
-      - name: Package Portable App
+      - name: Package Portable App (With Obfuscation)
         shell: pwsh
         run: |
           npm install -g javascript-obfuscator
@@ -49,10 +49,12 @@ jobs:
           mkdir Release
           Move-Item node.exe Release/
           
-          javascript-obfuscator server --output Release/server --target node
+          Copy-Item -Recurse server Release/
           
-          Copy-Item server/package.json Release/server/
-          Copy-Item -Recurse server/node_modules Release/server/
+          javascript-obfuscator Release/server/api --output Release/server/api --target node
+          javascript-obfuscator Release/server/core --output Release/server/core --target node
+          javascript-obfuscator Release/server/socket --output Release/server/socket --target node
+          javascript-obfuscator Release/server/index.js --output Release/server/index.js --target node
           
           New-Item -ItemType Directory -Path Release/client
           Move-Item client/dist Release/client/dist
