@@ -32,8 +32,9 @@ jobs:
           npm install -g caxa
 
       - name: Package Executable (Windows)
+        shell: bash
         run: |
-          caxa --input . --output ClassicMafiaDraft-Win64.exe -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js" "--caxa"
+          npx caxa --input . --output ClassicMafiaDraft-Win64.exe -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js" CAXA_BUILD
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
