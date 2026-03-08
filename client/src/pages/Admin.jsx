@@ -128,9 +128,9 @@ const Admin = () => {
     try {
       const res = await fetch('/api/system/apply-update', { method: 'POST' });
       if (res.ok) {
-        alert('Update downloading! The server will restart automatically in a few seconds. Please refresh this page momentarily.');
+        alert(text.updateDownloading);
       } else {
-        alert('Auto-update failed. Please download the new version manually.');
+        alert(text.updateFailed);
         setIsUpdating(false);
       }
     } catch (e) {
@@ -496,7 +496,10 @@ const Admin = () => {
       {updateData && (
         <div style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold' }}>
           <div>
-		    {text.versionAvailable}
+		    {text.versionAvailable
+			  .replace('{oldVersion}', updateData.currentVersion)
+			  .replace('{newVersion}', updateData.latestVersion)
+			}
           </div>
           <button 
             onClick={handleUpdate} 

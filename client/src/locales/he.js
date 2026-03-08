@@ -89,10 +89,12 @@ export const he = {
   },
   admin: {
     title: "זיר מנהלן",
-	versionAvailable: "גרסא חדשה {updateData.latestVersion} נתנה להתקנה! (גרסא נוכחית: {updateData.currentVersion})",
+	versionAvailable: "גרסא חדשה {newVersion} נתנה להתקנה! (גרסא נוכחית: {oldVersion})",
 	macUpdate: "להורדה ל-Mac",
 	winUpdate: "עדכון ואיתחול",
 	updatingText: "הורדה...",
+	updateDownloading: "הורדת עדכון! השרת יירענן בקרוב. רעננו את העמוד בבקשה.",
+	updateFailed: "עדכון אוטומתי נכשל. הורידו גרסא חדשה ידנית.",
     menu: "תפרית",
     tabOverview: "סקירה גלובלית",
     tabStreams: "שכבות-על שידורים",

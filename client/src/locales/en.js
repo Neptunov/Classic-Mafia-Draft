@@ -89,10 +89,12 @@ export const en = {
   },
   admin: {
     title: "Admin Console",
-	versionAvailable: "Version {updateData.latestVersion} is now available! (Current: {updateData.currentVersion})",
+	versionAvailable: "Version {newVersion} is now available! (Current: {oldVersion})",
 	macUpdate: "Download for Mac",
 	winUpdate: "Update & Restart",
 	updatingText: "Downloading...",
+	updateDownloading: "Update downloading! The server will restart automatically in a few seconds. Please refresh this page momentarily.",
+	updateFailed: "Auto-update failed. Please download the new version manually.",
     menu: "Menu",
     tabOverview: "Global Overview",
     tabStreams: "Stream Overlays",
