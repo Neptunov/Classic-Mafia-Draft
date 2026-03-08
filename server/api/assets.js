@@ -14,7 +14,7 @@ import crypto from 'crypto';
 import AdmZip from 'adm-zip'; 
 import { state } from '../core/state.js';
 import sharp from 'sharp';
-import { APP_ROOT } from '../core/paths.js';
+import { APP_ROOT, INTERNAL_ROOT } from '../core/paths.js';
 
 const __dirname = APP_ROOT;
 
@@ -23,7 +23,7 @@ export const ASSETS_DIR = path.join(__dirname, 'server/assets');
 export const TEMP_DIR = path.join(ASSETS_DIR, 'temp');     
 export const PACKS_DIR = path.join(ASSETS_DIR, 'packs');   
 export const ACTIVE_DIR = path.join(ASSETS_DIR, 'active'); 
-export const DEFAULT_DIR = path.join(ASSETS_DIR, 'default_packs');
+export const DEFAULT_DIR = path.join(INTERNAL_ROOT, 'server/assets/default_packs');
 export const DEFAULT_PACK = 'fiimdefault.mafpack';  //default pack name
 
 [ASSETS_DIR, TEMP_DIR, PACKS_DIR, ACTIVE_DIR].forEach(dir => {
