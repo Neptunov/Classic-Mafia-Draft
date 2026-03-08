@@ -17,7 +17,7 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 - [x] v0.3.5: The `.mafpack` Engine (`adm-zip` archiving, Pack import/export).
 - [x] v0.3.6: Dynamic Pack Manager UI (Instant texture swapping via Admin Panel).
 - [x] v0.4.0: The Cropping Studio (In-browser image editor, final compilation).
-- [x] v0.4.1 - v0.5.0: Streamlined installation and update procedures for end-users, alongside a dedicated macOS port for native Apple Silicon execution.
+- [x] v0.4.1 - v0.5.2: Streamlined installation and update procedures for end-users, alongside a dedicated macOS port for native Apple Silicon execution.
 - [ ] v1.0.0: Official Release (Post-beta testing and QA validation).
 
 ## 🏗️ Room Management
@@ -33,6 +33,11 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.5.2: Auto-Updater Stability & Directory Preservation**
+- Fixed a critical bug where the silent in-app updater would ignore custom installation paths and default to `C:\Program Files`. The Node backend now explicitly calculates its absolute `APP_ROOT` and injects it into the Inno Setup bootstrapper via the `/DIR` flag, guaranteeing flawless in-place upgrades regardless of where the organizer installed the app.
+- Resolved a race condition on Windows where the server would attempt to execute the downloaded update before the OS or Windows Defender had fully released the file lock. The update pipeline now safely waits for the file stream to fully close and enforces a brief buffer period before spawning the installer.
+- Hardened the handoff between the running server and the update executable, ensuring the current server process gracefully exits exactly as the detached updater initializes in the background.
 
 **v0.5.0: The Auto-Updater & Final Deployment Polish**
 - Integrated a dynamic notification banner into the React Admin Dashboard. The system securely polls the GitHub Releases API on boot and alerts the tournament organizer when a newer version of the server is available.
