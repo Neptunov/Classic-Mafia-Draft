@@ -14,11 +14,12 @@ import crypto from 'crypto';
 import AdmZip from 'adm-zip'; 
 import { state } from '../core/state.js';
 import sharp from 'sharp';
+import { APP_ROOT } from '../core/paths.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = APP_ROOT;
 
 // --- ASSET DIRECTORY ARCHITECTURE ---
-export const ASSETS_DIR = path.join(__dirname, '../assets');
+export const ASSETS_DIR = path.join(__dirname, 'server/assets');
 export const TEMP_DIR = path.join(ASSETS_DIR, 'temp');     
 export const PACKS_DIR = path.join(ASSETS_DIR, 'packs');   
 export const ACTIVE_DIR = path.join(ASSETS_DIR, 'active'); 

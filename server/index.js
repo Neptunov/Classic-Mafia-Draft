@@ -20,9 +20,9 @@ import { verifyPasswordPlaintext } from './core/crypto.js';
 import { initializeSockets } from './socket/handlers.js';
 import { setupBroadcasters } from './socket/broadcasters.js';
 import assetRouter, { ACTIVE_DIR, DEFAULT_DIR, DEFAULT_PACK } from './api/assets.js';
+import { INTERNAL_ROOT } from './core/paths.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = INTERNAL_ROOT;
 
 const app = express();
 app.use('/api/assets', assetRouter);
@@ -46,7 +46,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const clientBuildPath = path.join(__dirname, '../client/dist');
+const clientBuildPath = path.join(__dirname, 'client/dist');
 app.use(express.static(clientBuildPath));
 
 app.get(/(.*)/, (req, res) => {
