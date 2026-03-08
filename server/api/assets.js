@@ -11,7 +11,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-import AdmZip from 'adm-zip'; // <-- NEW IMPORT
+import AdmZip from 'adm-zip'; 
 import { state } from '../core/state.js';
 import sharp from 'sharp';
 
@@ -22,14 +22,15 @@ export const ASSETS_DIR = path.join(__dirname, '../assets');
 export const TEMP_DIR = path.join(ASSETS_DIR, 'temp');     
 export const PACKS_DIR = path.join(ASSETS_DIR, 'packs');   
 export const ACTIVE_DIR = path.join(ASSETS_DIR, 'active'); 
+export const DEFAULT_DIR = path.join(ASSETS_DIR, 'default_packs');
+export const DEFAULT_PACK = 'fiimdefault.mafpack';  //default pack name
 
 [ASSETS_DIR, TEMP_DIR, PACKS_DIR, ACTIVE_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
 const router = express.Router();
-router.use(express.json()); // Allow router to parse JSON body payloads
-
+router.use(express.json());
 const requireAdminToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -58,8 +59,6 @@ router.post('/upload-temp', requireAdminToken, upload.single('image'), async (re
   try {
     if (!req.file) return res.status(400).json({ error: 'No file detected.' });
 
-    // In a real scenario, the frontend will tell us if this is "citizen", "mafia", or "trayBg"
-    // For now, we use the original filename prefix if provided, else timestamp
     const baseName = req.body.assetType || `asset_${Date.now()}`;
     const fileName = `${baseName}.webp`;
     const outputPath = path.join(TEMP_DIR, fileName);
@@ -97,18 +96,14 @@ router.post('/compile', requireAdminToken, (req, res) => {
 
     const zip = new AdmZip();
     
-    // Package all temporary images
     tempFiles.forEach(file => {
       zip.addLocalFile(path.join(TEMP_DIR, file));
     });
 
-    // Generate and inject the manifest.json
     zip.addFile('manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8'));
 
-    // Write the compiled archive to the vault
     zip.writeZip(path.join(PACKS_DIR, filename));
 
-    // Sweep the temp directory clean
     tempFiles.forEach(file => fs.unlinkSync(path.join(TEMP_DIR, file)));
 
     console.log(`[ASSETS] Successfully compiled ${filename}`);
@@ -119,44 +114,112 @@ router.post('/compile', requireAdminToken, (req, res) => {
   }
 });
 
-// --- 3. LIST INSTALLED PACKS ---
+// --- 3. LIST ALL INSTALLED PACKS (Default & Custom) ---
 router.get('/packs', requireAdminToken, (req, res) => {
   try {
-    const files = fs.readdirSync(PACKS_DIR).filter(f => f.endsWith('.mafpack'));
-    const packs = files.map(file => {
-      const zip = new AdmZip(path.join(PACKS_DIR, file));
-      const manifestEntry = zip.getEntry('manifest.json');
-      if (manifestEntry) {
-        return { ...JSON.parse(zip.readAsText(manifestEntry)), filename: file };
+    const customFiles = fs.readdirSync(PACKS_DIR).filter(f => f.endsWith('.mafpack'));
+    const customPacks = customFiles.map(file => {
+      try {
+        const zip = new AdmZip(path.join(PACKS_DIR, file));
+        const manifestEntry = zip.getEntry('manifest.json');
+        if (manifestEntry) {
+          return { ...JSON.parse(zip.readAsText(manifestEntry)), filename: file, isDefault: false };
+        }
+      } catch (e) { 
+        console.error(`[ASSETS] Warning: Could not parse manifest for custom pack: ${file}`); 
       }
-      return { id: file, name: file, author: 'Unknown', filename: file };
+      return { id: file, name: file, author: 'Unknown', version: '1.0.0', filename: file, isDefault: false };
     });
+
+    let defaultPacks = [];
+    if (fs.existsSync(DEFAULT_DIR)) {
+      const defaultFiles = fs.readdirSync(DEFAULT_DIR).filter(f => f.endsWith('.mafpack'));
+      defaultPacks = defaultFiles.map(file => {
+        try {
+          const zip = new AdmZip(path.join(DEFAULT_DIR, file));
+          const manifestEntry = zip.getEntry('manifest.json');
+          if (manifestEntry) {
+            return { ...JSON.parse(zip.readAsText(manifestEntry)), filename: file, isDefault: true };
+          }
+        } catch (e) { 
+          console.error(`[ASSETS] Warning: Could not parse manifest for default pack: ${file}`); 
+        }
+        return { id: file, name: file, author: 'Official', version: '1.0.0', filename: file, isDefault: true };
+      });
+    }
     
-    res.json({ success: true, packs });
+    res.json({ success: true, customPacks, defaultPacks });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to read installed packs.' });
+    console.error('[ASSETS] Fatal error reading packs:', err);
+    res.status(500).json({ error: 'Failed to read installed packs.', customPacks: [], defaultPacks: [] });
   }
 });
 
 // --- 4. ACTIVATE PACK ---
 router.post('/activate/:filename', requireAdminToken, (req, res) => {
   try {
-    const packPath = path.join(PACKS_DIR, req.params.filename);
-    if (!fs.existsSync(packPath)) return res.status(404).json({ error: 'Pack not found.' });
+    const filename = req.params.filename;
+    let packPath = path.join(PACKS_DIR, filename);
 
-    // Purge the active directory
+    if (!fs.existsSync(packPath)) {
+      packPath = path.join(DEFAULT_DIR, filename);
+    }
+
+    if (!fs.existsSync(packPath)) {
+      return res.status(404).json({ error: 'Pack not found in custom or default vaults.' });
+    }
+
     const activeFiles = fs.readdirSync(ACTIVE_DIR);
     activeFiles.forEach(file => fs.unlinkSync(path.join(ACTIVE_DIR, file)));
 
-    // Unzip the selected pack directly into the active serving directory
     const zip = new AdmZip(packPath);
     zip.extractAllTo(ACTIVE_DIR, true);
 
-    console.log(`[ASSETS] Activated pack: ${req.params.filename}`);
+    console.log(`[ASSETS] Activated pack: ${filename}`);
     res.json({ success: true });
   } catch (err) {
     console.error('[ASSETS] Activation failed:', err);
     res.status(500).json({ error: 'Failed to extract pack.' });
+  }
+});
+
+// --- 5. IMPORT .MAFPACK ---
+const packUpload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } 
+});
+
+router.post('/import', requireAdminToken, packUpload.single('pack'), (req, res) => {
+  try {
+    if (!req.file || !req.file.originalname.endsWith('.mafpack')) {
+      return res.status(400).json({ error: 'Invalid file. Must be a .mafpack archive.' });
+    }
+    
+    const outputPath = path.join(PACKS_DIR, req.file.originalname);
+    fs.writeFileSync(outputPath, req.file.buffer);
+    
+    console.log(`[ASSETS] Successfully imported pack: ${req.file.originalname}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[ASSETS] Import failed:', err);
+    res.status(500).json({ error: 'Import failed.' });
+  }
+});
+
+// --- 6. EXPORT / DOWNLOAD .MAFPACK ---
+router.get('/download/:filename', requireAdminToken, (req, res) => {
+  try {
+    const safeFilename = path.basename(req.params.filename);
+    const filePath = path.join(PACKS_DIR, safeFilename);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Pack not found in vault.' });
+    }
+    
+    res.download(filePath);
+  } catch (err) {
+    console.error('[ASSETS] Download failed:', err);
+    res.status(500).json({ error: 'Download failed.' });
   }
 });
 

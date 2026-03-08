@@ -10,6 +10,17 @@ import { ua } from '../locales/ua';
 import { he } from '../locales/he';
 
 const dictionaries = { en, ru, he, ua };
+const mergeDictionaries = (base, target) => {
+  const result = { ...base };
+  for (const key in target) {
+    if (typeof target[key] === 'object' && target[key] !== null && !Array.isArray(target[key])) {
+      result[key] = mergeDictionaries(base[key] || {}, target[key]);
+    } else {
+      result[key] = target[key];
+    }
+  }
+  return result;
+};
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
@@ -45,10 +56,10 @@ export const LanguageProvider = ({ children }) => {
     document.documentElement.lang = language;
   }, [language]);
 
-  const text = dictionaries[language] || en;
+  const text = mergeDictionaries(dictionaries['en'], dictionaries[language] || dictionaries['en']);
 
   return (
-    <LanguageContext.Provider value={{ language, text, settings }}> {/* Add settings here */}
+    <LanguageContext.Provider value={{ language, text, settings }}>
       {children}
     </LanguageContext.Provider>
   );

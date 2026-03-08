@@ -5,6 +5,7 @@
  * and secure tournament administration.
  */
 
+import AdmZip from 'adm-zip';
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -18,7 +19,7 @@ import { state, APP_VERSION, DATA_SCHEMA_VERSION, saveState, loadState, STORAGE_
 import { verifyPasswordPlaintext } from './core/crypto.js';
 import { initializeSockets } from './socket/handlers.js';
 import { setupBroadcasters } from './socket/broadcasters.js';
-import assetRouter, { ACTIVE_DIR } from './api/assets.js';
+import assetRouter, { ACTIVE_DIR, DEFAULT_DIR, DEFAULT_PACK } from './api/assets.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,6 +71,25 @@ const PORT = process.env.PORT || 3000;
 const LOCAL_IP = getLocalIpAddress();
 
 loadState();
+
+// --- PRELOAD DEFAULT ASSETS ---
+const activeFiles = fs.readdirSync(ACTIVE_DIR);
+if (activeFiles.length === 0) {
+  console.log('[ASSETS] Active directory is empty. Preloading default assets...');
+  const defaultPackPath = path.join(DEFAULT_DIR, DEFAULT_PACK);
+  
+  if (fs.existsSync(defaultPackPath)) {
+    try {
+      const zip = new AdmZip(defaultPackPath);
+      zip.extractAllTo(ACTIVE_DIR, true);
+      console.log('[ASSETS] Default classic pack extracted and ready.');
+    } catch (err) {
+      console.error('[ASSETS] Failed to extract default pack:', err);
+    }
+  } else {
+    console.warn(`[ASSETS] WARNING: fiimdefault.mafpack not found at ${defaultPackPath}`);
+  }
+}
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 

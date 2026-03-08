@@ -1,6 +1,6 @@
 /**
  * @file src/pages/Admin.css
- * @description Responsive sidebar layout and Overview Plates for the Admin Console.
+ * @description Responsive sidebar layout, Overview Plates, and Settings UI for the Admin Console.
  */
 
 .admin-layout {
@@ -28,6 +28,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.sidebar-header h2 {
+  font-size: 1.2rem;
+  color: var(--accent-gold);
+  margin: 0;
 }
 
 .sidebar-nav {
@@ -58,6 +64,14 @@
 .nav-item:hover { background-color: rgba(255,255,255,0.05); color: var(--text-white); }
 .nav-item.active { background-color: var(--accent-red); color: var(--text-white); }
 
+.sidebar-footer-form {
+  padding: 1rem;
+  border-top: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 /* --- MAIN CONTENT AREA --- */
 .admin-main {
   flex: 1;
@@ -73,12 +87,33 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .admin-content {
   flex: 1;
   overflow-y: auto;
   padding: 2rem;
+}
+
+.admin-page-title {
+  margin-bottom: 2rem;
+  font-size: 2rem;
+  margin-top: 0;
 }
 
 /* --- OVERVIEW PLATES --- */
@@ -113,6 +148,15 @@
   padding-bottom: 0.8rem;
 }
 
+.plate-header h2, .plate-header h3 {
+  margin: 0;
+}
+
+.plate-timer {
+  font-family: monospace;
+  font-size: 1.1rem;
+}
+
 .plate-stats {
   display: flex;
   justify-content: space-between;
@@ -129,20 +173,30 @@
   background-color: #1a1a1a;
 }
 
-/* --- MOBILE RESPONSIVENESS --- */
-.mobile-menu-btn { display: none; }
-
-@media (max-width: 768px) {
-  .admin-sidebar {
-    position: absolute;
-    height: 100%;
-    transform: translateX(-100%);
-  }
-  .admin-sidebar.open { transform: translateX(0); }
-  .mobile-menu-btn { display: block; background: none; border: none; color: white; cursor: pointer; }
+/* --- ROOM DETAILED VIEW --- */
+.room-details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-/* --- ROOM DETAILED VIEW --- */
+.room-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--surface-black);
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.room-header-meta {
+  display: flex;
+  gap: 1rem;
+  color: #888;
+  font-weight: bold;
+}
+
 .room-details-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -160,6 +214,98 @@
   padding: 1.5rem;
 }
 
+.admin-panel-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--accent-gold);
+}
+
+.device-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.device-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem;
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  border: 1px solid #333;
+}
+
+/* --- SETTINGS & PACK MANAGER --- */
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.pack-preview-container {
+  width: 100%;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+  border: 2px solid var(--accent-gold);
+  box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+}
+
+.pack-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.pack-import-btn {
+  cursor: pointer;
+  background-color: #2e7d32;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.pack-list-container {
+  margin-bottom: 1.5rem;
+  border-top: 1px dashed #444;
+  padding-top: 1rem;
+}
+
+.pack-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--surface-black);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}
+
+.pack-export-btn {
+  background-color: transparent;
+  color: var(--accent-gold);
+  border: 1px solid var(--accent-gold);
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.compile-studio-container {
+  border-top: 1px dashed #444;
+  padding-top: 1rem;
+}
+
+.compile-form-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
 /* --- MINI TRAY --- */
 .mini-tray-grid {
   display: grid;
@@ -174,13 +320,11 @@
   background-size: cover;
   background-position: center;
   border: 1px solid #444;
-  position: relative;
 }
 
-.mini-card.face-down { background-image: url('/roles/card-back.jpg'); }
 .mini-card.revealed { opacity: 0.2; filter: grayscale(100%); }
 
-/* --- DRAFT RESULTS LIST (Mini Judge View) --- */
+/* --- DRAFT RESULTS LIST --- */
 .admin-results-list {
   display: flex;
   flex-direction: column;
@@ -197,4 +341,18 @@
   border-radius: 4px;
   font-size: 0.9rem;
   font-weight: bold;
+}
+
+/* --- MOBILE RESPONSIVENESS --- */
+.mobile-menu-btn { display: none; }
+
+@media (max-width: 768px) {
+  .admin-sidebar {
+    position: absolute;
+    height: 100%;
+    transform: translateX(-100%);
+  }
+  .admin-sidebar.open { transform: translateX(0); }
+  .mobile-menu-btn { display: block; background: none; border: none; color: white; cursor: pointer; }
+  .compile-form-row { flex-direction: column; }
 }

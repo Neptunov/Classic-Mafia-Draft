@@ -20,16 +20,7 @@ export default function StreamView() {
   const activePack = settings?.customAssets?.activePack || 'default';
 
   // --- UPDATE ASSET ROUTING LOGIC ---
-  const getAssetPath = (assetName) => {
-    if (!assetName) return '';
-    if (activePack === 'default') {
-      if (assetName === 'trayBg') return '/velvet-tray.jpg';
-      if (assetName === 'cardBack') return '/roles/card-back.jpg';
-      return `/roles/${assetName}.jpg`;
-    } else {
-      return `/api/assets/active/${assetName}.webp?v=${activePack}`;
-    }
-  };
+  const getAssetPath = (assetName) => `/api/assets/active/${assetName}.webp?v=${activePack}`;
   
   const [queue, setQueue] = useState([]);
   const [currentReveal, setCurrentReveal] = useState(null);

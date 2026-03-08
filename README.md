@@ -18,7 +18,7 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 - [x] v0.3.4: Hybrid HTTP Bridge & WebP Image Optimization Pipeline.
 - [x] v0.3.5: The `.mafpack` Engine (`adm-zip` archiving, Pack import/export).
 - [x] v0.3.6: Dynamic Pack Manager UI (Instant texture swapping via Admin Panel).
-- [ ] v0.4.0: The Cropping Studio (In-browser image editor, final compilation).
+- [x] v0.4.0: The Cropping Studio (In-browser image editor, final compilation).
 - [ ] v0.4.1 - v0.5.0: Streamlined installation and update procedures for end-users, alongside a dedicated macOS port for native Apple Silicon execution.
 - [ ] v1.0.0: Official Release (Post-beta testing and QA validation).
 
@@ -36,15 +36,19 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 📝 Changelog
 
-<<<<<<< HEAD
+**v0.4.0: The Cropping Studio & Asset Pipeline**
+- Completely removed static image dependencies from the React frontend. The application now exclusively streams high-performance WebP textures from the server's `/active` vault, drastically reducing the client bundle size.
+- The backend now intelligently monitors the active texture directory. If empty, it will automatically unpack the `fiimdefault.mafpack` base game assets from the secure `default_packs` vault on startup.
+- Tournament organizers can now easily share custom `.mafpack` files. Added secure REST endpoints to natively download custom packs to the local hard drive, and a file-upload bridge to import community packs directly into the server.
+- Integrated an in-browser image editor (`react-easy-crop` & HTML5 Canvas). Organizers can upload raw, high-resolution images, visually crop them to perfect Poker Card ratios (2.5:3.5), and instantly compile them into proprietary `.mafpack` archives without needing external photo editing software.
+- Engineered a recursive dictionary merging utility. The UI will now gracefully fall back to English strings if the active language (e.g., Russian, Hebrew) is missing a newly added translation key, preventing application crashes.
+
 **v0.3.6: Dynamic Pack Manager & Bug Fixes**
 - Completely refactored the Admin Settings tab. Tournament organizers can now view a dynamically fetched list of installed `.mafpack` archives and instantly swap the active server textures via a clean dropdown interface.
 - Upgraded the `Player` and `Stream` React components to listen to the global `activePack` state. The UI now dynamically routes image requests to the Express `/api/assets/active/` endpoint, instantly updating graphics across all devices without requiring a page refresh.
 - Fixed an issue where the Stream overlay would accidentally reset its room assignment back to 'GLOBAL' upon a browser refresh.
 - Fixed an RTL layout bug causing incorrect localization rendering for stream overlay alignment (Left/Center/Right) when Hebrew was the active language.
 
-=======
->>>>>>> d84d66062dcebd224af462d11d7236cef98df16b
 **v0.3.5: The `.mafpack` Archiving Engine**
 - Integrated `adm-zip` to compile raw, optimized WebP textures from the server's temporary vault into distributable `.mafpack` files.
 - The compilation engine automatically injects a `manifest.json` into every `.mafpack`, stamping it with a unique cryptographic ID, author name, and versioning metadata.

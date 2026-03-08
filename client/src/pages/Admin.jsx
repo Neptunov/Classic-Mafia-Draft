@@ -1,7 +1,7 @@
 /**
  * @file src/pages/Admin.jsx
- * @description Super Admin Dashboard (v0.2.0).
- * Final implementation including Detailed Room Views, Mini-Trays, and Single Mode config.
+ * @description Super Admin Dashboard (v0.3.6).
+ * Refactored to utilize external CSS classes and robust array fallbacks for dynamic pack fetching.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -10,6 +10,8 @@ import { useLanguage } from '../utils/LanguageContext';
 import { Menu, X, Monitor, Shield, Users, Plus, Wifi, ShieldAlert, Activity, Lock, Video, Trash2, Ghost } from 'lucide-react';
 import packageJson from '../../package.json';
 import { useAuth } from '../utils/AuthContext';
+import Cropper from 'react-easy-crop';
+import getCroppedImg from '../utils/cropImage';
 import '../App.css';
 import './Admin.css';
 
@@ -30,21 +32,13 @@ const LiveTimer = ({ startTime }) => {
 
 const Admin = () => {
   const { uploadToken } = useAuth();
-	
   const { text: dictionary, settings } = useLanguage();
   const text = dictionary.admin;
-  const activePack = settings?.customAssets?.activePack || 'default';
+  
+  const activePack = settings?.customAssets?.activePack || 'fiimdefault.mafpack';
+  const [selectedPack, setSelectedPack] = useState(activePack);
 
-  // --- ASSET ROUTING LOGIC ---
-  const getAssetPath = (assetName) => {
-    if (activePack === 'default') {
-      if (assetName === 'trayBg') return '/velvet-tray.jpg';
-      if (assetName === 'cardBack') return '/roles/card-back.jpg';
-      return `/roles/${assetName}.jpg`;
-    } else {
-      return `/api/assets/active/${assetName}.webp?v=${activePack}`;
-    }
-  };
+  const getAssetPath = (assetName) => `/api/assets/active/${assetName}.webp?v=${activePack}`;
   
   const [rooms, setRooms] = useState({});
   const [registry, setRegistry] = useState([]); 
@@ -61,8 +55,18 @@ const Admin = () => {
   const [securityMsg, setSecurityMsg] = useState('');
   
   const [globalLang, setGlobalLang] = useState('en');
-  const [installedPacks, setInstalledPacks] = useState([]);
-  const [selectedPack, setSelectedPack] = useState('default');
+  const [customPacks, setCustomPacks] = useState([]);
+  const [defaultPacks, setDefaultPacks] = useState([]);
+  const [newPackName, setNewPackName] = useState('');
+  const [newPackAuthor, setNewPackAuthor] = useState('');
+  const [newPackVersion, setNewPackVersion] = useState('1.0.0');
+  
+  const [cropFile, setCropFile] = useState(null); 
+  const [cropTarget, setCropTarget] = useState(null); 
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [tempVaultFiles, setTempVaultFiles] = useState([]);
 
   useEffect(() => {
     const handleRoomsUpdate = (roomsData) => setRooms(roomsData);
@@ -78,7 +82,7 @@ const Admin = () => {
     socket.on('PASSWORD_CHANGED_FAILED', (msg) => setSecurityMsg({ type: 'error', text: msg }));
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
-	socket.on('ADMIN_ERROR', (msg) => alert(msg));
+    socket.on('ADMIN_ERROR', (msg) => alert(msg));
 
     if (socket.connected) socket.emit('REQUEST_REGISTRY');
 
@@ -90,22 +94,29 @@ const Admin = () => {
       socket.off('PASSWORD_CHANGED_FAILED');
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
-	  socket.off('ADMIN_ERROR');
+      socket.off('ADMIN_ERROR');
     };
   }, []);
   
   useEffect(() => {
-    if (activeTab === 'settings') {
-      fetch('/api/assets/packs', {
-        headers: { 'Authorization': `Bearer ${uploadToken}` }
-      })
+    if (activeTab === 'settings') fetchPacks();
+  }, [activeTab, uploadToken]);
+  
+  useEffect(() => {
+    setSelectedPack(activePack);
+  }, [activePack]);
+
+  const fetchPacks = () => {
+    fetch('/api/assets/packs', { headers: { 'Authorization': `Bearer ${uploadToken}` } })
       .then(res => res.json())
-      .then(data => {
-        if (data.success) setInstalledPacks(data.packs);
+      .then(data => { 
+        if (data.success) {
+          setCustomPacks(data.customPacks || []); 
+          setDefaultPacks(data.defaultPacks || []);
+        }
       })
       .catch(err => console.error("Failed to load packs", err));
-    }
-  }, [activeTab, uploadToken]);
+  };
 
   const handleCreateRoom = (e) => {
     e.preventDefault();
@@ -142,54 +153,144 @@ const Admin = () => {
     return <div className="plate-status" style={{ color: 'var(--accent-red)' }}>{text.statusUnlocked}</div>;
   };
 
-  const handleTestUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('image', file);
-
-    try {
-      const res = await fetch('/api/assets/upload-temp', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${uploadToken}` // Inject the secure token
-        },
-        body: formData
-      });
-      
-      const data = await res.json();
-      if (data.success) {
-        alert(`Success! Saved to server as: ${data.file}`);
-      } else {
-        alert(`Upload Failed: ${data.error}`);
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Network error during upload.');
-    }
-  };
-  
-  const handleTestCompile = async () => {
+  const handleCompilePack = async () => {
+    if (!newPackName || !newPackAuthor) return alert('Name and Author are required!');
     try {
       const res = await fetch('/api/assets/compile', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${uploadToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name: 'My First Pack', author: 'Tournament Admin', version: '1.0.0' })
+        headers: { 'Authorization': `Bearer ${uploadToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newPackName, author: newPackAuthor, version: newPackVersion })
       });
       
       const data = await res.json();
       if (data.success) {
-        alert(`Pack Compiled Successfully! ID: ${data.pack.id}`);
+        alert(`Pack "${newPackName}" Compiled Successfully!`);
+        setNewPackName(''); 
+		setTempVaultFiles([]); 
+        fetchPacks();     
       } else {
         alert(`Compilation Failed: ${data.error}`);
       }
     } catch (err) {
       console.error(err);
-      alert('Network error during compilation.');
+    }
+  };
+  
+  const uploadDirect = async (file, targetName) => {
+    const formData = new FormData();
+    formData.append('image', file, `${targetName}.webp`);
+    formData.append('assetType', targetName);
+
+    try {
+      const res = await fetch('/api/assets/upload-temp', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${uploadToken}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTempVaultFiles(prev => [...prev, targetName]);
+      } else {
+        alert(text.errUploadFailed + data.error);
+      }
+    } catch (e) {
+      console.error(e);
+      alert(text.errNetwork);
+    }
+  };
+
+  const onSelectCropFile = (e, targetName) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (targetName === 'trayBg') {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width < 1280 || img.height < 720) {
+          alert(text.errTraySize);
+        } else {
+          uploadDirect(file, targetName);
+        }
+        URL.revokeObjectURL(img.src);
+      };
+      img.src = URL.createObjectURL(file);
+    } 
+    else {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setCropFile(reader.result);
+        setCropTarget(targetName);
+        setCrop({ x: 0, y: 0 });
+        setZoom(1);
+      });
+      reader.readAsDataURL(file);
+    }
+    e.target.value = ''; 
+  };
+
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleSaveCrop = async () => {
+    try {
+      const croppedBlob = await getCroppedImg(cropFile, croppedAreaPixels);
+      await uploadDirect(croppedBlob, cropTarget);
+      setCropFile(null); 
+      setCropTarget(null);
+    } catch (e) {
+      console.error(e);
+      alert(text.errNetwork);
+    }
+  };
+  
+  const handleImportPack = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('pack', file);
+
+    try {
+      const res = await fetch('/api/assets/import', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${uploadToken}` },
+        body: formData
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert('Pack imported successfully! Refreshing list...');
+        fetchPacks(); 
+      } else {
+        alert(`Import Failed: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error during import.');
+    }
+  };
+
+  const handleDownloadPack = async (filename) => {
+    try {
+      const res = await fetch(`/api/assets/download/${filename}`, {
+        headers: { 'Authorization': `Bearer ${uploadToken}` }
+      });
+      
+      if (!res.ok) throw new Error('Download request failed');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to download pack.');
     }
   };
 
@@ -203,19 +304,17 @@ const Admin = () => {
     const slots = Array.from({ length: 10 }, (_, i) => i);
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        
-        {/* Room Header Actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--surface-black)', padding: '1.5rem', borderRadius: '8px', border: '1px solid #333' }}>
+      <div className="room-details-container">
+        <div className="room-header-card">
           <div>
-            <h1 style={{ margin: '0 0 0.5rem 0', fontSize: '2rem' }}>{roomId}</h1>
-            <div style={{ display: 'flex', gap: '1rem', color: '#888', fontWeight: 'bold' }}>
+            <h1 className="admin-page-title" style={{ marginBottom: '0.5rem' }}>{roomId}</h1>
+            <div className="room-header-meta">
               <span>{ text.statusText } {gs.status === 'PENDING' ? (gs.areRolesLocked ? text.statusWaiting : text.statusUnlocked) : gs.status === 'IN_PROGRESS' ? text.statusInProgress : text.statusCompleted}</span>
               <span>{ text.timeText } <LiveTimer startTime={gs.draftStartTime} /></span>
             </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className="header-controls">
             {gs.status === 'PENDING' && (
               <button 
                 className="primary-btn" 
@@ -228,7 +327,7 @@ const Admin = () => {
             {gs.status === 'PENDING' && !gs.areRolesLocked && (
               <button 
                 className="primary-btn" 
-                onClick={() => { if(window.confirm('Delete this room permanently?')) socket.emit('DELETE_ROOM', roomId); navigateTo('overview'); }}
+                onClick={() => { if(window.confirm('Delete this room permanently?')) { socket.emit('DELETE_ROOM', roomId); navigateTo('overview'); } }}
                 style={{ backgroundColor: 'var(--accent-red)' }}
               >
                 <Trash2 size={18} /> {text.deleteRoom}
@@ -238,12 +337,9 @@ const Admin = () => {
         </div>
 
         <div className="room-details-grid">
-          
-          {/* LEFT COLUMN: Settings & Devices */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            
             <div className="admin-panel-section">
-              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-gold)' }}>{text.roomSettings}</h3>
+              <h3>{text.roomSettings}</h3>
               
               <label style={{ 
                 display: 'flex', alignItems: 'center', gap: '0.8rem', 
@@ -271,23 +367,20 @@ const Admin = () => {
               )}
             </div>
 
-            {/* UNIFIED DEVICE LIST & SEAT CONFIGURATION */}
             <div className="admin-panel-section">
-              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-gold)' }}>{text.connectedDevices}</h3>
+              <h3>{text.connectedDevices}</h3>
               {roomDevices.length === 0 ? (
                 <div style={{ color: '#666', fontStyle: 'italic' }}>No devices connected.</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div className="device-list-container">
                   {roomDevices.map(d => (
-                    <div key={d.id} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '0.8rem', backgroundColor: '#1a1a1a', borderRadius: '4px', border: '1px solid #333' }}>
-                      
+                    <div key={d.id} className="device-list-item">
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontWeight: 'bold', color: d.name.includes('Phantom') ? '#888' : 'white' }}>{d.name}</span>
                         {d.ip && <span style={{ fontSize: '0.8rem', color: '#666', fontFamily: 'monospace' }}>IP: {d.ip}</span>}
                       </div>
                       
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {/* ROLE ASSIGNMENT */}
                         <select 
                           className="login-input" 
                           value={d.role}
@@ -300,7 +393,6 @@ const Admin = () => {
                           <option value="JUDGE">{text.roleJudge}</option>
                         </select>
 
-                        {/* SEAT ASSIGNMENT (Only visible if Single Mode AND device is a Player) */}
                         {gs.settings.singleMode && d.role === 'PLAYER' && (
                           <select 
                             className="login-input" 
@@ -314,7 +406,6 @@ const Admin = () => {
                           </select>
                         )}
                       </div>
-
                     </div>
                   ))}
                 </div>
@@ -322,10 +413,9 @@ const Admin = () => {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Mini Tray & Results */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="admin-panel-section">
-              <h3 style={{ margin: 0, color: 'var(--accent-gold)' }}>{text.miniTray}</h3>
+              <h3>{text.miniTray}</h3>
               <div className="mini-tray-grid">
                 {slots.map(i => {
                   const isRevealed = gs.revealedSlots.includes(i);
@@ -334,7 +424,7 @@ const Admin = () => {
                   return (
                     <div 
                       key={i} 
-                      className={`mini-card ${isRevealed ? 'revealed' : 'face-down'}`}
+                      className={`mini-card ${isRevealed ? 'revealed' : ''}`}
                       style={{ backgroundImage: trueRole && !isRevealed ? `url('${getAssetPath(trueRole.toLowerCase())}')` : `url('${getAssetPath('cardBack')}')` }}
                     />
                   );
@@ -343,7 +433,7 @@ const Admin = () => {
             </div>
 
             <div className="admin-panel-section">
-              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-gold)' }}>{text.draftResults}</h3>
+              <h3>{text.draftResults}</h3>
               <div className="admin-results-list">
                 {[1,2,3,4,5,6,7,8,9,10].map(seatNum => {
                   const data = gs.results[seatNum];
@@ -372,7 +462,7 @@ const Admin = () => {
       {/* SIDEBAR */}
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h2 style={{ fontSize: '1.2rem', color: 'var(--accent-gold)' }}>{text.title}</h2>
+          <h2>{text.title}</h2>
           <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(false)}><X size={24}/></button>
         </div>
         
@@ -393,12 +483,12 @@ const Admin = () => {
           <button className={`nav-item ${activeTab === 'security' ? 'active' : ''}`} onClick={() => navigateTo('security')}>
             <Shield size={18} /> {text.tabSecurity}
           </button>
-		  <button className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => navigateTo('settings')}>
+          <button className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => navigateTo('settings')}>
             <Monitor size={18} /> {text.tabSettings}
           </button>
         </nav>
 
-        <div style={{ padding: '1rem', borderTop: '1px solid #333' }}>
+        <div className="sidebar-footer-form">
           <form onSubmit={handleCreateRoom} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <input 
               type="text" 
@@ -417,17 +507,17 @@ const Admin = () => {
 
       {/* MAIN CONTENT */}
       <main className="admin-main">
-        <header className="admin-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <header className="admin-header">
+          <div className="header-controls">
             <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}><Menu size={24}/></button>
             <div className="status-indicator">
               <Wifi color={isConnected ? "var(--text-white)" : "var(--accent-red)"} size={18} />
-              <span style={{ color: isConnected ? "var(--text-white)" : "var(--accent-red)", fontSize: '0.9rem' }}>
+              <span style={{ color: isConnected ? "var(--text-white)" : "var(--accent-red)" }}>
                 {isConnected ? text.connected : text.disconnected}
               </span>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="header-controls">
             <span style={{ color: globalDebug ? 'var(--accent-gold)' : '#888', fontWeight: 'bold', fontSize: '0.9rem', textTransform: 'uppercase' }}>
               <ShieldAlert size={16} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: '0.3rem' }}/>
               {text.globalDebug}
@@ -444,7 +534,7 @@ const Admin = () => {
         <div className="admin-content">
           {activeTab === 'overview' && (
             <div>
-              <h1 style={{ marginBottom: '2rem', fontSize: '2rem' }}>{text.tabOverview}</h1>
+              <h1 className="admin-page-title">{text.tabOverview}</h1>
               {Object.keys(rooms).length === 0 ? <div style={{ color: '#666', fontStyle: 'italic' }}>{text.noRooms}</div> : (
                 <div className="overview-grid">
                   {Object.entries(rooms).map(([roomId, roomData]) => {
@@ -453,8 +543,8 @@ const Admin = () => {
                     return (
                       <div key={roomId} className="room-plate" onClick={() => navigateTo(roomId)}>
                         <div className="plate-header">
-                          <h2 style={{ fontSize: '1.5rem', margin: 0 }}>{roomId}</h2>
-                          <div style={{ color: gs.status === 'IN_PROGRESS' ? 'var(--text-white)' : '#666', fontFamily: 'monospace', fontSize: '1.1rem' }}>
+                          <h2>{roomId}</h2>
+                          <div className="plate-timer" style={{ color: gs.status === 'IN_PROGRESS' ? 'var(--text-white)' : '#666' }}>
                             {gs.status === 'IN_PROGRESS' ? <LiveTimer startTime={gs.draftStartTime} /> : '00:00'}
                           </div>
                         </div>
@@ -472,10 +562,9 @@ const Admin = () => {
             </div>
           )}
 
-          {/* STREAMS TAB */}
           {activeTab === 'streams' && (
             <div>
-              <h1 style={{ marginBottom: '2rem', fontSize: '2rem' }}>{text.tabStreams}</h1>
+              <h1 className="admin-page-title">{text.tabStreams}</h1>
               {streams.length === 0 ? (
                 <div style={{ color: '#666', fontStyle: 'italic' }}>{text.streamMissing}.</div>
               ) : (
@@ -483,7 +572,7 @@ const Admin = () => {
                   {streams.map((stream) => (
                     <div key={stream.id} className="room-plate" style={{ borderColor: stream.role === 'PENDING_STREAM' ? 'var(--accent-red)' : '#333' }}>
                       <div className="plate-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
-                        <h3 style={{ margin: 0 }}>{stream.name}</h3>
+                        <h3>{stream.name}</h3>
                         <span style={{ fontSize: '0.85rem', color: '#888', fontFamily: 'monospace' }}>IP: {stream.ip}</span>
                       </div>
                       
@@ -540,27 +629,27 @@ const Admin = () => {
 
           {activeTab === 'security' && ( 
             <div>
-              <h1 style={{ marginBottom: '2rem', fontSize: '2rem' }}>{text.securityTitle}</h1>
+              <h1 className="admin-page-title">{text.securityTitle}</h1>
               <div className="login-card" style={{ maxWidth: '500px', margin: '0' }}>
-                <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <form onSubmit={handleChangePassword} className="settings-form">
                   <div className="input-group">
                     <label>{text.oldPassword}</label>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', color: '#666' }} />
+                      <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
                       <input type="password" required className="login-input" style={{ paddingLeft: '2.5rem' }} value={oldPass} onChange={e => setOldPass(e.target.value)} />
                     </div>
                   </div>
                   <div className="input-group">
                     <label>{text.newPassword}</label>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', color: '#666' }} />
+                      <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
                       <input type="password" required minLength={4} className="login-input" style={{ paddingLeft: '2.5rem' }} value={newPass} onChange={e => setNewPass(e.target.value)} />
                     </div>
                   </div>
                   <div className="input-group">
                     <label>{text.confirmPassword}</label>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <Lock size={18} style={{ position: 'absolute', insetInlineStart: '12px', color: '#666' }} />
+                      <Lock size={18} style={{ position: 'absolute', left: '12px', color: '#666' }} />
                       <input type="password" required minLength={4} className="login-input" style={{ paddingLeft: '2.5rem' }} value={confirmPass} onChange={e => setConfirmPass(e.target.value)} />
                     </div>
                   </div>
@@ -570,32 +659,29 @@ const Admin = () => {
               </div>
             </div>
           )}
-		  
-		  {/* SETTINGS TAB */}
+          
+          {/* SETTINGS TAB */}
           {activeTab === 'settings' && ( 
             <div>
-              <h1 style={{ marginBottom: '2rem', fontSize: '2rem' }}>{text.settingsTitle}</h1>
+              <h1 className="admin-page-title">{text.settingsTitle}</h1>
               <div className="login-card" style={{ maxWidth: '600px', margin: '0' }}>
                 <form 
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      
-                      if (selectedPack !== 'default') {
-                        await fetch(`/api/assets/activate/${selectedPack}`, {
-                          method: 'POST',
-                          headers: { 'Authorization': `Bearer ${uploadToken}` }
-                        });
-                      }
-
-                      socket.emit('UPDATE_GLOBAL_SETTINGS', { 
-                        language: globalLang, 
-                        customAssets: { activePack: selectedPack } 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (selectedPack !== 'default') {
+                      await fetch(`/api/assets/activate/${selectedPack}`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${uploadToken}` }
                       });
-                      
-                      alert(text.saveSuccess);
-                    }} 
-                    style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}
-                  >
+                    }
+                    socket.emit('UPDATE_GLOBAL_SETTINGS', { 
+                      language: globalLang, 
+                      customAssets: { activePack: selectedPack } 
+                    });
+                    alert(text.saveSuccess);
+                  }} 
+                  className="settings-form"
+                >
                   
                   {/* LANGUAGE SELECTOR */}
                   <div className="input-group">
@@ -614,42 +700,140 @@ const Admin = () => {
 
                   <div style={{ height: '1px', backgroundColor: '#333' }}></div>
 
-                  {/* PACK MANAGER */}
-                  <div>
-                    <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-gold)' }}>Tournament Texture Pack</h3>
-                    <div className="input-group" style={{ marginBottom: '1rem' }}>
-                      <label>Active Pack</label>
-                      <select 
-                        className="login-select" 
-                        value={selectedPack} 
-                        onChange={e => setSelectedPack(e.target.value)}
-                      >
-                        <option value="default">Default Classic Theme</option>
-                        {installedPacks.map(pack => (
-                          <option key={pack.id} value={pack.filename}>
-                            {pack.name} (v{pack.version}) - by {pack.author}
-                          </option>
+                  {/* LIVE PREVIEW BOX */}
+                  <div className="settings-section" style={{ marginBottom: '2rem' }}>
+                    <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-gold)' }}>{text.texturePreview}</h3>
+                    <div className="pack-preview-container" style={{ backgroundImage: `url('${getAssetPath('trayBg')}')` }}>
+                      
+                      <div className="mini-tray-grid" style={{ marginTop: 0 }}>
+                        {['cardBack', 'citizen', 'sheriff', 'mafia', 'don'].map((card, i) => (
+                          <div 
+                            key={i} 
+                            className="mini-card" 
+                            style={{ 
+                              backgroundImage: `url('${getAssetPath(card)}')`,
+                              boxShadow: '0 4px 8px rgba(0,0,0,0.6)',
+                              border: card === 'cardBack' ? '1px solid #444' : '1px solid var(--accent-gold)'
+                            }}
+                          />
                         ))}
-                      </select>
+                      </div>
+                      
                     </div>
                   </div>
-				  <div className="admin-panel-section" style={{ marginTop: '1rem', border: '1px dashed var(--accent-gold)' }}>
-                    <h3 style={{ color: 'var(--accent-gold)', marginBottom: '1rem' }}>TEST: HTTP Upload Bridge</h3>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleTestUpload} 
-                      className="login-input" 
-                    />
+
+                  {/* PACK MANAGER & COMPILER */}
+                  <div className="admin-panel-section">
+                    
+                    <div className="pack-manager-header">
+                      <h3 style={{ margin: 0, color: 'var(--accent-gold)' }}>{text.packsWindow}</h3>
+                      <label className="pack-import-btn">
+					    {text.importButton}
+                        <input type="file" accept=".mafpack" onChange={handleImportPack} style={{ display: 'none' }} />
+                      </label>
+                    </div>
+
+                    <div className="input-group" style={{ marginBottom: '1.5rem' }}>
+                      <label>{text.selectPack}</label>
+                      <select className="login-select" value={selectedPack} onChange={e => setSelectedPack(e.target.value)}>
+                        <optgroup label={ text.defaultPacksTitle }>
+                          {defaultPacks.map(pack => (
+                            <option key={pack.id} value={pack.filename}>{pack.name} (v{pack.version})</option>
+                          ))}
+                        </optgroup>
+                        {customPacks.length > 0 && (
+                          <optgroup label={ text.customPacksTitle }>
+                            {customPacks.map(pack => (
+                              <option key={pack.id} value={pack.filename}>{pack.name} - {text.authorReference} {pack.author}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* INSTALLED CUSTOM PACKS LIST */}
+                    {customPacks.length > 0 && (
+                      <div className="pack-list-container">
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>{text.exportPacksTitle}</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {customPacks.map(pack => (
+                            <div key={pack.id} className="pack-list-item">
+                              <span>{pack.name} <small style={{color: '#888'}}>- {pack.author}</small></span>
+                              <button type="button" onClick={() => handleDownloadPack(pack.filename)} className="pack-export-btn">
+								  {text.exportButton}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* THE CROPPING STUDIO */}
+                    <div className="compile-studio-container" style={{ position: 'relative' }}>
+                      <h4 style={{ margin: '0 0 1rem 0', color: '#888' }}>{text.compileStudioTitle}</h4>
+                      
+                      {/* Asset Upload Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                        {[
+                          { id: 'trayBg', label: text.assetTrayBg },
+                          { id: 'cardBack', label: text.assetCardBack },
+                          { id: 'citizen', label: text.assetCitizen },
+                          { id: 'sheriff', label: text.assetSheriff },
+                          { id: 'mafia', label: text.assetMafia },
+                          { id: 'don', label: text.assetDon }
+                        ].map(asset => (
+                          <div key={asset.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1a1a1a', padding: '0.8rem', borderRadius: '4px', border: tempVaultFiles.includes(asset.id) ? '1px solid #2e7d32' : '1px solid #333' }}>
+                            <span style={{ color: tempVaultFiles.includes(asset.id) ? '#2e7d32' : 'var(--text-white)' }}>
+                              {asset.label} {tempVaultFiles.includes(asset.id) && '✓'}
+                            </span>
+                            <label className="primary-btn" style={{ cursor: 'pointer', width: '110px', textAlign: 'center', padding: '0.3rem 0', fontSize: '0.8rem', backgroundColor: '#333', flexShrink: 0 }}>
+                              {text.uploadBtn}
+                              <input type="file" accept="image/*" onChange={(e) => onSelectCropFile(e, asset.id)} style={{ display: 'none' }} />
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Final Compile Form */}
+                      <div className="compile-form-row">
+                        <input type="text" className="login-input" placeholder={text.packNamePlaceholder} value={newPackName} onChange={e => setNewPackName(e.target.value)} style={{ flex: 2, padding: '0.6rem', fontSize: '0.9rem' }} />
+                        <input type="text" className="login-input" placeholder={text.authorPlaceholder} value={newPackAuthor} onChange={e => setNewPackAuthor(e.target.value)} style={{ flex: 1, padding: '0.6rem', fontSize: '0.9rem' }} />
+                        <input type="text" className="login-input" placeholder="v1.0.0" value={newPackVersion} onChange={e => setNewPackVersion(e.target.value)} style={{ width: '80px', padding: '0.6rem', fontSize: '0.9rem' }} />
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => { handleCompilePack(); setTempVaultFiles([]); }} 
+                        className="primary-btn" 
+                        style={{ width: '100%', backgroundColor: tempVaultFiles.length >= 6 ? '#1976d2' : '#333', padding: '0.8rem', fontSize: '1rem', transition: 'background-color 0.3s' }} 
+                        disabled={tempVaultFiles.length === 0}
+                      >
+                        {tempVaultFiles.length >= 6 ? text.compileReadyBtn : text.compilePendingBtn}
+                      </button>
+
+                      {/* THE CROPPER MODAL */}
+                      {cropFile && (
+                        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ position: 'relative', flex: 1 }}>
+                            <Cropper
+                              image={cropFile}
+                              crop={crop}
+                              zoom={zoom}
+                              aspect={2.5 / 3.5}
+                              onCropChange={setCrop}
+                              onZoomChange={setZoom}
+                              onCropComplete={onCropComplete}
+                            />
+                          </div>
+                          <div style={{ padding: '2rem', backgroundColor: 'var(--surface-black)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', borderTop: '1px solid var(--accent-gold)' }}>
+                            <button type="button" onClick={() => setCropFile(null)} className="primary-btn" style={{ backgroundColor: 'var(--accent-red)' }}>{text.cancelBtn}</button>
+                            <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(e.target.value)} style={{ width: '300px' }} />
+                            <button type="button" onClick={handleSaveCrop} className="primary-btn" style={{ backgroundColor: '#2e7d32' }}>{text.saveCropBtn}</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                   </div>
-				  <button 
-                      type="button" 
-                      onClick={handleTestCompile} 
-                      className="primary-btn" 
-                      style={{ marginTop: '1rem', backgroundColor: '#1976d2' }}
-                    >
-                      Test: Compile .mafpack
-                    </button>
 
                   <button type="submit" className="primary-btn" style={{ backgroundColor: '#2e7d32' }}>
                     {text.saveSettings}
@@ -659,8 +843,7 @@ const Admin = () => {
             </div>
           )}
 
-          {/* ROOM DETAILED VIEW */}
-          {activeTab !== 'overview' && activeTab !== 'streams' && activeTab !== 'security' && renderRoomDetails(activeTab)}
+          {activeTab !== 'overview' && activeTab !== 'streams' && activeTab !== 'security' && activeTab !== 'settings' && renderRoomDetails(activeTab)}
 
         </div>
         <footer className="lobby-footer" style={{ justifyContent: 'center', padding: '1rem', borderTop: '1px solid #333' }}>
