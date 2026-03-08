@@ -36,6 +36,14 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 📝 Changelog
 
+**v0.4.2: The Portable Deployment Engine & Smart Installer**
+- Completely removed third-party bundlers in favor of downloading and wrapping official Node.js binaries. This guarantees 100% compatibility with native C++ modules (like `sharp`) and perfectly supports both 64-bit and 32-bit (x86) Windows systems.
+- Engineered a GitHub Actions pipeline that automatically builds the React client, downloads the OS-specific Node engines, obfuscates the proprietary backend logic, and zips the releases natively in the cloud upon tagging.
+- Integrated `javascript-obfuscator` into the CI/CD pipeline. All proprietary backend code (APIs, core logic, socket handlers) is now heavily encrypted and obfuscated in production releases to protect intellectual property, while cleanly bypassing third-party `node_modules`.
+- Built a lightweight Inno Setup executable (`.iss`) that dynamically fetches the latest `.zip` release directly from the GitHub API. It features a safe-uninstall protocol that rigorously protects organizer data (`/storage` and `/assets/packs`) between updates.
+- Transformed the raw production terminal into a stylized ASCII dashboard. On boot, the server now clears the boot sequence, fires a native Windows OS notification, and automatically opens the user's default web browser to the Admin Panel.
+- Upgraded the `restart` CLI command. It now natively instructs Windows to spawn a brand-new, detached terminal window running the server before gracefully shutting down the current one.
+
 **v0.4.0: The Cropping Studio & Asset Pipeline**
 - Completely removed static image dependencies from the React frontend. The application now exclusively streams high-performance WebP textures from the server's `/active` vault, drastically reducing the client bundle size.
 - The backend now intelligently monitors the active texture directory. If empty, it will automatically unpack the `fiimdefault.mafpack` base game assets from the secure `default_packs` vault on startup.
