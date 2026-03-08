@@ -3,11 +3,9 @@
 A professional-grade, multi-table draft management system for Classic Mafia.
 
 ### 📦 Installation & Deployment
-1. Clone the repository.
-2. Run `npm install` in both the `/client` and `/server` directories.
-3. Build the frontend for production: `cd client && npm run build`
-4. Start the server: `cd server && npm run start`
-5. Open your browser to the provided local address (e.g., `http://localhost:3000`) and complete the web-based initialization to securely create your master password!
+* **Windows (Recommended):** [Download Setup Installer](https://github.com/Neptunov/Classic-Mafia-Draft/releases/download/Installer/ClassicMafiaDraft_Setup.exe)
+* **macOS (Apple Silicon):** [Download .dmg](https://github.com/Neptunov/Classic-Mafia-Draft/releases/latest/download/ClassicMafiaDraft-macOS-arm64.dmg)
+* **macOS (Intel):** [Download .dmg](https://github.com/Neptunov/Classic-Mafia-Draft/releases/latest/download/ClassicMafiaDraft-macOS-x64.dmg)
 
 ## 🗺️ Development Roadmap (WIP, will be updated)
 
@@ -35,6 +33,13 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.4.3: The macOS Native Build & Cross-Platform Architecture**
+- Upgraded the GitHub Actions matrix to concurrently build and package the server for both `macOS x64` (Intel) and `macOS arm64` (Apple Silicon).
+- Engineered a cloud-native shell pipeline that constructs strict Apple Application Bundles (`Classic Mafia Draft.app`). It automatically generates the required `Info.plist`, downloads the OS-specific Node engine, obfuscates the backend, and wraps everything into a distributable, mountable `.dmg` disk image.
+- Completely rewrote the core pathing engine (`paths.js`). The server now detects its host operating system. On macOS, tournament state and `.mafpack` custom assets are securely saved to the system's `~/Library/Application Support/ClassicMafiaDraft` directory. This ensures organizers never lose their saved data when dragging a new `.app` version into their Applications folder.
+- Built a custom bash launcher inside the `.app/Contents/MacOS` directory that seamlessly intercepts the user's double-click, silently booting the hidden, portable Node backend in the background.
+- Established the distribution architecture for the Windows lightweight installer. The setup `.exe` now acts as a permanent bootstrapper that dynamically resolves and extracts the latest release directly from the GitHub API.
 
 **v0.4.2: The Portable Deployment Engine & Smart Installer**
 - Completely removed third-party bundlers in favor of downloading and wrapping official Node.js binaries. This guarantees 100% compatibility with native C++ modules (like `sharp`) and perfectly supports both 64-bit and 32-bit (x86) Windows systems.

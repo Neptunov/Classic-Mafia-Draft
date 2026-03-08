@@ -23,7 +23,13 @@ import { verifyPasswordPlaintext } from './core/crypto.js';
 import { initializeSockets } from './socket/handlers.js';
 import { setupBroadcasters } from './socket/broadcasters.js';
 import assetRouter, { ACTIVE_DIR, DEFAULT_DIR, DEFAULT_PACK } from './api/assets.js';
-import { INTERNAL_ROOT } from './core/paths.js';
+import { APP_ROOT, INTERNAL_ROOT } from './core/paths.js';
+
+if (process.argv.includes('--prod') && process.platform === 'darwin') {
+  if (!fs.existsSync(APP_ROOT)) {
+    fs.mkdirSync(APP_ROOT, { recursive: true });
+  }
+}
 
 const __dirname = INTERNAL_ROOT;
 

@@ -73,3 +73,95 @@ jobs:
           files: ClassicMafiaDraft-Win*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+  build-mac:
+    name: Build macOS App
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64] 
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build React Client
+        working-directory: ./client
+        run: |
+          npm install
+          npm run build
+
+      - name: Install Server Dependencies
+        working-directory: ./server
+        run: npm install
+
+      - name: Package macOS App Bundle
+        run: |
+          APP_NAME="Classic Mafia Draft"
+          APP_DIR="$APP_NAME.app"
+          MACOS_DIR="$APP_DIR/Contents/MacOS"
+          RESOURCES_DIR="$APP_DIR/Contents/Resources"
+          
+          # 1. Create the strict Apple folder architecture
+          mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
+
+          if [ "${{ matrix.arch }}" == "x64" ]; then
+            curl -o "$MACOS_DIR/node" https://nodejs.org/dist/v20.11.1/node-v20.11.1-darwin-x64/bin/node
+          else
+            curl -o "$MACOS_DIR/node" https://nodejs.org/dist/v20.11.1/node-v20.11.1-darwin-arm64/bin/node
+          fi
+          chmod +x "$MACOS_DIR/node"
+
+          npm install -g javascript-obfuscator
+          cp -r server "$RESOURCES_DIR/"
+          javascript-obfuscator "$RESOURCES_DIR/server/api" --output "$RESOURCES_DIR/server/api" --target node
+          javascript-obfuscator "$RESOURCES_DIR/server/core" --output "$RESOURCES_DIR/server/core" --target node
+          javascript-obfuscator "$RESOURCES_DIR/server/socket" --output "$RESOURCES_DIR/server/socket" --target node
+          javascript-obfuscator "$RESOURCES_DIR/server/index.js" --output "$RESOURCES_DIR/server/index.js" --target node
+          
+          mkdir -p "$RESOURCES_DIR/client"
+          cp -r client/dist "$RESOURCES_DIR/client/dist"
+
+          cat << 'EOF' > "$MACOS_DIR/Launcher"
+          DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+          cd "$DIR/../Resources"
+          ../MacOS/node server/index.js --prod
+          EOF
+          chmod +x "$MACOS_DIR/Launcher"
+
+          cat << 'EOF' > "$APP_DIR/Contents/Info.plist"
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key>
+            <string>Launcher</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.neptunov.classicmafiadraft</string>
+            <key>CFBundleName</key>
+            <string>Classic Mafia Draft</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+          </dict>
+          </plist>
+          EOF
+
+          hdiutil create -volname "$APP_NAME" -srcfolder "$APP_DIR" -ov -format UDZO "ClassicMafiaDraft-macOS-${{ matrix.arch }}.dmg"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClassicMafiaDraft-macOS-${{ matrix.arch }}
+          path: ClassicMafiaDraft-macOS-*.dmg
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ClassicMafiaDraft-macOS-*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
