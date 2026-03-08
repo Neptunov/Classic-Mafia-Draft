@@ -44,14 +44,19 @@ jobs:
       - name: Package Portable App
         shell: pwsh
         run: |
-          mkdir Release
-          # Move the raw node executable and our code into the Release folder
-          mv node.exe Release/
-          mv server Release/
-          mkdir Release/client
-          mv client/dist Release/client/dist
+          npm install -g javascript-obfuscator
           
-          # Compress everything into a pristine .zip file
+          mkdir Release
+          Move-Item node.exe Release/
+          
+          javascript-obfuscator server --output Release/server --target node
+          
+          Copy-Item server/package.json Release/server/
+          Copy-Item -Recurse server/node_modules Release/server/
+          
+          New-Item -ItemType Directory -Path Release/client
+          Move-Item client/dist Release/client/dist
+          
           Compress-Archive -Path Release/* -DestinationPath ClassicMafiaDraft-Win${{ matrix.arch == 'x64' && '64' || '86' }}.zip
 
       - name: Upload Artifact
