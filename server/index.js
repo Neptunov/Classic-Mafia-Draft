@@ -111,9 +111,9 @@ function startServer() {
 	if (isProd) {
 	  console.log('\x1Bc');
 	  console.log('\x1b[36m%s\x1b[0m', `
-	  =======================================================
-	       CLASSIC MAFIA DRAFT - TOURNAMENT SERVER 
-	  =======================================================
+      =======================================================
+           CLASSIC MAFIA DRAFT - TOURNAMENT SERVER 
+      =======================================================
 	  `);
 	  console.log(`      Status:      ONLINE (v${APP_VERSION})`);
 	  console.log(`      Admin PC:    http://localhost:${PORT}`);
