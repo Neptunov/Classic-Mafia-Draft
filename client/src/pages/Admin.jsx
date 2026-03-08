@@ -67,6 +67,9 @@ const Admin = () => {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [tempVaultFiles, setTempVaultFiles] = useState([]);
+  
+  const [updateData, setUpdateData] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     const handleRoomsUpdate = (roomsData) => setRooms(roomsData);
@@ -105,6 +108,36 @@ const Admin = () => {
   useEffect(() => {
     setSelectedPack(activePack);
   }, [activePack]);
+  
+  useEffect(() => {
+    fetch('/api/system/update-check')
+      .then(res => res.json())
+      .then(data => {
+        if (data.hasUpdate) setUpdateData(data);
+      })
+      .catch(err => console.error('Failed to check for updates', err));
+  }, []);
+
+  const handleUpdate = async () => {
+    if (updateData.platform === 'darwin') {
+      window.open(updateData.url, '_blank');
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const res = await fetch('/api/system/apply-update', { method: 'POST' });
+      if (res.ok) {
+        alert('Update downloading! The server will restart automatically in a few seconds. Please refresh this page momentarily.');
+      } else {
+        alert('Auto-update failed. Please download the new version manually.');
+        setIsUpdating(false);
+      }
+    } catch (e) {
+      console.error(e);
+      setIsUpdating(false);
+    }
+  };
 
   const fetchPacks = () => {
     fetch('/api/assets/packs', { headers: { 'Authorization': `Bearer ${uploadToken}` } })
@@ -459,6 +492,22 @@ const Admin = () => {
   return (
     <div className="admin-layout">
       
+	  {/* --- IN-APP UPDATER BANNER --- */}
+      {updateData && (
+        <div style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold' }}>
+          <div>
+		    {text.versionAvailable}
+          </div>
+          <button 
+            onClick={handleUpdate} 
+            className="primary-btn" 
+            style={{ backgroundColor: '#1a1a1a', color: 'var(--accent-gold)', border: '1px solid #000', padding: '0.4rem 1rem' }}
+            disabled={isUpdating}
+          >
+            {isUpdating ? text.updatingText : (updateData.platform === 'darwin' ? text.macUpdate : text.winUpdate)}
+          </button>
+        </div>
+      )}
       {/* SIDEBAR */}
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">

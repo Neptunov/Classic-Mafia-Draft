@@ -24,6 +24,7 @@ import { initializeSockets } from './socket/handlers.js';
 import { setupBroadcasters } from './socket/broadcasters.js';
 import assetRouter, { ACTIVE_DIR, DEFAULT_DIR, DEFAULT_PACK } from './api/assets.js';
 import { APP_ROOT, INTERNAL_ROOT } from './core/paths.js';
+import systemRoutes from './api/system.js';
 
 if (process.argv.includes('--prod') && process.platform === 'darwin') {
   if (!fs.existsSync(APP_ROOT)) {
@@ -35,6 +36,7 @@ const __dirname = INTERNAL_ROOT;
 
 const app = express();
 app.use('/api/assets', assetRouter);
+app.use('/api/system', systemRoutes)
 app.use('/api/assets/active', express.static(ACTIVE_DIR));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] }, maxHttpBufferSize: 8192 });

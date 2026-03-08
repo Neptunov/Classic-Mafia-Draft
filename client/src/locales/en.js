@@ -89,6 +89,10 @@ export const en = {
   },
   admin: {
     title: "Admin Console",
+	versionAvailable: "Version {updateData.latestVersion} is now available! (Current: {updateData.currentVersion})",
+	macUpdate: "Download for Mac",
+	winUpdate: "Update & Restart",
+	updatingText: "Downloading...",
     menu: "Menu",
     tabOverview: "Global Overview",
     tabStreams: "Stream Overlays",

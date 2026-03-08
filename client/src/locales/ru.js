@@ -88,6 +88,10 @@ export const ru = {
   },
   admin: {
     title: "Консоль Админа",
+	versionAvailable: "Версия {updateData.latestVersion} доступна! (Текущая: {updateData.currentVersion})",
+	macUpdate: "Скачать для Mac",
+	winUpdate: "Обновить и перезагрузить",
+	updatingText: "Загрузка...",
     menu: "Меню",
     tabOverview: "Обзор Турнира",
     tabStreams: "Оверлеи (OBS)",

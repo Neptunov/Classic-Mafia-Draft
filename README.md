@@ -17,7 +17,7 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 - [x] v0.3.5: The `.mafpack` Engine (`adm-zip` archiving, Pack import/export).
 - [x] v0.3.6: Dynamic Pack Manager UI (Instant texture swapping via Admin Panel).
 - [x] v0.4.0: The Cropping Studio (In-browser image editor, final compilation).
-- [ ] v0.4.1 - v0.5.0: Streamlined installation and update procedures for end-users, alongside a dedicated macOS port for native Apple Silicon execution.
+- [x] v0.4.1 - v0.5.0: Streamlined installation and update procedures for end-users, alongside a dedicated macOS port for native Apple Silicon execution.
 - [ ] v1.0.0: Official Release (Post-beta testing and QA validation).
 
 ## 🏗️ Room Management
@@ -33,6 +33,12 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 5. **Tournament Integrity:** The underlying deck is never sent over the network. State payloads are strictly sanitized to prevent inspection cheating.
 
 ## 📝 Changelog
+
+**v0.5.0: The Auto-Updater & Final Deployment Polish**
+- Integrated a dynamic notification banner into the React Admin Dashboard. The system securely polls the GitHub Releases API on boot and alerts the tournament organizer when a newer version of the server is available.
+- Engineered a frictionless update pipeline for Windows users via the `/api/system/apply-update` endpoint. With a single click, the server silently downloads the lightweight Inno Setup bootstrapper, gracefully shuts itself down, applies the update, and automatically reboots—all while rigorously protecting the user's `/storage` and custom `.mafpack` assets.
+- Built OS-aware routing into the updater interface. Because macOS application bundles (`.app`) require manual drag-and-drop replacement, the UI smartly detects the host operating system and routes Mac organizers directly to the latest `.dmg` download page.
+- Implemented a strict environment detection protocol (`isCompiled` flag). The auto-updater is completely disabled when running the application in local development mode (e.g., `npm run dev`), ensuring the live Git repository and working source code can never be accidentally overwritten by the production bootstrapper.
 
 **v0.4.3: The macOS Native Build & Cross-Platform Architecture**
 - Upgraded the GitHub Actions matrix to concurrently build and package the server for both `macOS x64` (Intel) and `macOS arm64` (Apple Silicon).
