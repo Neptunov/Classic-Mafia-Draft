@@ -139,13 +139,23 @@ function startServer() {
 	    console.log(`1. Admin PC:   http://localhost:${PORT}`);
 		console.log(`2. LAN Access: http://${LOCAL_IP}:${PORT}`);
 		console.log(`=======================================`);
-		console.log(`Type "status", "restart", "shutdown", or "reset" for QoL tools.\n`);
+		console.log(`Type "status", "restart", "shutdown", or "reset" for QoL tools. Type "help" for more info.`);
+		console.log(`\n`);
 	  }
 
 	  rl.on('line', (input) => {
 		const command = input.trim().toLowerCase();
 
 		switch (command) {
+		  case 'help':
+			console.log(`\nAvailable Commands:`);
+			console.log(`- status   : Displays current server status and resource usage.`);
+			console.log(`- restart  : Saves state and restarts the server (production only).`);
+			console.log(`- shutdown : Saves state and shuts down the server.`);
+			console.log(`- reset    : FACTORY RESET - Wipes ALL data and shards (requires password).`);
+			console.log(`\n`);
+			 break;
+
 		  case 'status':
 			console.log(`\n=== 📊 SERVER STATUS ===`);
 			console.log(`Version:       v${APP_VERSION}`);
