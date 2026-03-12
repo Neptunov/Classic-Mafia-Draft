@@ -11,10 +11,7 @@ client/dist-ssr/
 server/store.json
 .env
 .env.local
-server/storage/
-server/assets/active
-server/assets/packs
-server/assets/temp
+data/
 *.tmp
 *.dat
 

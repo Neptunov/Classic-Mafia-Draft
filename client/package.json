@@ -1,7 +1,7 @@
 {
   "name": "mafia-draft-frontend",
   "private": true,
-  "version": "0.5.2d",
+  "version": "0.5.2e",
   "type": "module",
   "scripts": {
     "dev": "vite",

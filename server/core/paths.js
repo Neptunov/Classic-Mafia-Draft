@@ -14,13 +14,13 @@ export const isCompiled = process.argv.includes('--prod');
 export const INTERNAL_ROOT = isCompiled ? path.join(__dirname, '../../') : path.join(__dirname, '../../');
 
 const getAppRoot = () => {
-  if (!isCompiled) return 'C:/Users/' + os.userInfo().username + '/AppData/Roaming/ClassicMafiaDraft';
+  if (!isCompiled) return path.join(__dirname, '../../');
   
   if (process.platform === 'darwin') {
     return path.join(os.homedir(), 'Library', 'Application Support', 'ClassicMafiaDraft');
   }
   
-  return process.cwd();
+  return 'C:/Users/' + os.userInfo().username + '/AppData/Roaming/ClassicMafiaDraft';
 };
 
 export const APP_ROOT = getAppRoot();

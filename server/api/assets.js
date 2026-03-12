@@ -19,7 +19,7 @@ import { APP_ROOT, INTERNAL_ROOT } from '../core/paths.js';
 const __dirname = APP_ROOT;
 
 // --- ASSET DIRECTORY ARCHITECTURE ---
-export const ASSETS_DIR = path.join(__dirname, 'server/assets');
+export const ASSETS_DIR = path.join(__dirname, 'data/assets');
 export const TEMP_DIR = path.join(ASSETS_DIR, 'temp');     
 export const PACKS_DIR = path.join(ASSETS_DIR, 'packs');   
 export const ACTIVE_DIR = path.join(ASSETS_DIR, 'active'); 

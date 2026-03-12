@@ -21,7 +21,7 @@ export const APP_VERSION = packageData.version;
 export const DATA_SCHEMA_VERSION = 2;
 
 // --- 🛡️ NEW VAULT ARCHITECTURE ---
-export const STORAGE_DIR = path.join(__dirname, 'server/storage');
+export const STORAGE_DIR = path.join(__dirname, 'data/storage');
 const DATA_SHARDS = 4;
 const PARITY_SHARDS = 2;
 const TOTAL_SHARDS = DATA_SHARDS + PARITY_SHARDS;
