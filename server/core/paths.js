@@ -14,7 +14,7 @@ export const isCompiled = process.argv.includes('--prod');
 export const INTERNAL_ROOT = isCompiled ? path.join(__dirname, '../../') : path.join(__dirname, '../../');
 
 const getAppRoot = () => {
-  if (!isCompiled) return 'C:\\Users\\' + os.userInfo().username + '\\AppData\\Roaming\\ClassicMafiaDraft';
+  if (!isCompiled) return 'C:/Users/' + os.userInfo().username + '/AppData/Roaming/ClassicMafiaDraft';
   
   if (process.platform === 'darwin') {
     return path.join(os.homedir(), 'Library', 'Application Support', 'ClassicMafiaDraft');
