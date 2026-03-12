@@ -34,6 +34,15 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 📝 Changelog
 
+**v0.5.4: Admin Settings UI/UX Overhaul & Stream Customization**
+- Restructured the Admin "Settings" tab into a responsive, two-column layout, separating "Interface & Language" controls from the "Asset Manager" for a cleaner, more organized experience on wider screens.
+- Introduced interactive color pickers and a live preview for the Stream overlay's seat plate, allowing for easy customization of both background and text colors.
+- Corrected a critical bug where the new settings preview would crash the Admin Dashboard due to an incorrect localization key reference.
+
+**v0.5.3: UI Polish & Cross-Platform Compatibility**
+- Fixed a CSS alignment issue with the in-app update notification banner, ensuring the content is perfectly centered.
+- Migrated the application's data storage path on macOS to the user's local `~/Library/Application Support` directory, aligning with platform standards and preventing data loss when updating the app.
+
 **v0.5.2: Auto-Updater Stability & Directory Preservation**
 - Fixed a critical bug where the silent in-app updater would ignore custom installation paths and default to `C:\Program Files`. The Node backend now explicitly calculates its absolute `APP_ROOT` and injects it into the Inno Setup bootstrapper via the `/DIR` flag, guaranteeing flawless in-place upgrades regardless of where the organizer installed the app.
 - Resolved a race condition on Windows where the server would attempt to execute the downloaded update before the OS or Windows Defender had fully released the file lock. The update pipeline now safely waits for the file stream to fully close and enforces a brief buffer period before spawning the installer.
