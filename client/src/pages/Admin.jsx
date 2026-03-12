@@ -491,76 +491,75 @@ const Admin = () => {
 
   return (
     <div className="admin-layout">
-      
-	  {/* --- IN-APP UPDATER BANNER --- */}
-      {updateData && (
-        <div style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold' }}>
-          <div>
-		    {text.versionAvailable
-			  .replace('{oldVersion}', updateData.currentVersion)
-			  .replace('{newVersion}', updateData.latestVersion)
-			}
-          </div>
-          <button 
-            onClick={handleUpdate} 
-            className="primary-btn" 
-            style={{ backgroundColor: '#1a1a1a', color: 'var(--accent-gold)', border: '1px solid #000', padding: '0.4rem 1rem' }}
-            disabled={isUpdating}
-          >
-            {isUpdating ? text.updatingText : (updateData.platform === 'darwin' ? text.macUpdate : text.winUpdate)}
-          </button>
-        </div>
-      )}
-      {/* SIDEBAR */}
-      <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-header">
-          <h2>{text.title}</h2>
-          <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(false)}><X size={24}/></button>
-        </div>
-        
-        <nav className="sidebar-nav">
-          <button className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => navigateTo('overview')}>
-            <Activity size={18} /> {text.tabOverview}
-          </button>
-          <div style={{ height: '1px', backgroundColor: '#333', margin: '0.5rem 0' }}></div>
-          {Object.keys(rooms).map(roomId => (
-            <button key={roomId} className={`nav-item ${activeTab === roomId ? 'active' : ''}`} onClick={() => navigateTo(roomId)}>
-              <Monitor size={18} /> {roomId}
-            </button>
-          ))}
-          <div style={{ height: '1px', backgroundColor: '#333', margin: '0.5rem 0' }}></div>
-          <button className={`nav-item ${activeTab === 'streams' ? 'active' : ''}`} onClick={() => navigateTo('streams')}>
-            <Video size={18} /> {text.tabStreams}
-          </button>
-          <button className={`nav-item ${activeTab === 'security' ? 'active' : ''}`} onClick={() => navigateTo('security')}>
-            <Shield size={18} /> {text.tabSecurity}
-          </button>
-          <button className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => navigateTo('settings')}>
-            <Monitor size={18} /> {text.tabSettings}
-          </button>
-        </nav>
-
-        <div className="sidebar-footer-form">
-          <form onSubmit={handleCreateRoom} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <input 
-              type="text" 
-              className="login-input" 
-              placeholder={text.createPlaceholder} 
-              value={newRoomName} 
-              onChange={e => setNewRoomName(e.target.value)}
-              style={{ padding: '0.6rem', fontSize: '0.9rem', width: '100%', boxSizing: 'border-box' }}
-            />
-            <button type="submit" className="primary-btn" style={{ padding: '0.6rem', width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
-              <Plus size={18}/> {text.createRoom}
-            </button>
-          </form>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT */}
-      <main className="admin-main">
-        <header className="admin-header">
-          <div className="header-controls">
+          
+          {/* SIDEBAR */}
+          <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+            <div className="sidebar-header">
+              <h2>{text.title}</h2>
+              <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(false)}><X size={24}/></button>
+            </div>
+            
+            <nav className="sidebar-nav">
+              <button className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => navigateTo('overview')}>
+                <Activity size={18} /> {text.tabOverview}
+              </button>
+              <div style={{ height: '1px', backgroundColor: '#333', margin: '0.5rem 0' }}></div>
+              {Object.keys(rooms).map(roomId => (
+                <button key={roomId} className={`nav-item ${activeTab === roomId ? 'active' : ''}`} onClick={() => navigateTo(roomId)}>
+                  <Monitor size={18} /> {roomId}
+                </button>
+              ))}
+              <div style={{ height: '1px', backgroundColor: '#333', margin: '0.5rem 0' }}></div>
+              <button className={`nav-item ${activeTab === 'streams' ? 'active' : ''}`} onClick={() => navigateTo('streams')}>
+                <Video size={18} /> {text.tabStreams}
+              </button>
+              <button className={`nav-item ${activeTab === 'security' ? 'active' : ''}`} onClick={() => navigateTo('security')}>
+                <Shield size={18} /> {text.tabSecurity}
+              </button>
+              <button className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => navigateTo('settings')}>
+                <Monitor size={18} /> {text.tabSettings}
+              </button>
+            </nav>
+    
+            <div className="sidebar-footer-form">
+              <form onSubmit={handleCreateRoom} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <input 
+                  type="text" 
+                  className="login-input" 
+                  placeholder={text.createPlaceholder} 
+                  value={newRoomName} 
+                  onChange={e => setNewRoomName(e.target.value)}
+                  style={{ padding: '0.6rem', fontSize: '0.9rem', width: '100%', boxSizing: 'border-box' }}
+                />
+                <button type="submit" className="primary-btn" style={{ padding: '0.6rem', width: '100%', display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+                  <Plus size={18}/> {text.createRoom}
+                </button>
+              </form>
+            </div>
+          </aside>
+    
+          {/* MAIN CONTENT */}
+          <main className="admin-main">
+          {/* --- IN-APP UPDATER BANNER --- */}
+            {updateData && (
+              <div style={{ backgroundColor: 'var(--accent-gold)', color: '#000', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold' }}>
+                <div>
+              {text.versionAvailable
+              .replace('{oldVersion}', updateData.currentVersion)
+              .replace('{newVersion}', updateData.latestVersion)
+            }
+                </div>
+                <button 
+                  onClick={handleUpdate} 
+                  className="primary-btn" 
+                  style={{ backgroundColor: '#1a1a1a', color: 'var(--accent-gold)', border: '1px solid #000', padding: '0.4rem 1rem' }}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? text.updatingText : (updateData.platform === 'darwin' ? text.macUpdate : text.winUpdate)}
+                </button>
+              </div>
+            )}
+            <header className="admin-header">          <div className="header-controls">
             <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}><Menu size={24}/></button>
             <div className="status-indicator">
               <Wifi color={isConnected ? "var(--text-white)" : "var(--accent-red)"} size={18} />
