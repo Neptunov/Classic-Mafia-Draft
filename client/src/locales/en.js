@@ -181,6 +181,10 @@ export const en = {
 	errUploadFailed: "Upload failed: ",
 	errNetwork: "Network error during upload.",
     saveSettings: "Apply Global Settings",
-    saveSuccess: "Settings applied successfully."
+    saveSuccess: "Settings applied successfully.",
+    streamPlateBackgroundColor: 'Seat Plate Background Color',
+    streamPlateTextColor: 'Seat Plate Text Color',
+    streamPreview: 'Preview',
+    interfaceAndLanguage: 'Interface & Language'
   }
 };

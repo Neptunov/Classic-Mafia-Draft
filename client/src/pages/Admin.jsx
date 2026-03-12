@@ -54,12 +54,14 @@ const Admin = () => {
   const [confirmPass, setConfirmPass] = useState('');
   const [securityMsg, setSecurityMsg] = useState('');
   
-  const [globalLang, setGlobalLang] = useState('en');
-  const [customPacks, setCustomPacks] = useState([]);
-  const [defaultPacks, setDefaultPacks] = useState([]);
-  const [newPackName, setNewPackName] = useState('');
-  const [newPackAuthor, setNewPackAuthor] = useState('');
-  const [newPackVersion, setNewPackVersion] = useState('1.0.0');
+  	const [globalLang, setGlobalLang] = useState(settings?.language || 'en');
+  	const [customPacks, setCustomPacks] = useState([]);
+  	const [defaultPacks, setDefaultPacks] = useState([]);
+  	const [newPackName, setNewPackName] = useState('');
+  	const [newPackAuthor, setNewPackAuthor] = useState('');
+  	const [newPackVersion, setNewPackVersion] = useState('1.0.0');
+  	const [streamSeatPlateBackgroundColor, setStreamSeatPlateBackgroundColor] = useState(settings?.streamSeatPlateBackgroundColor || '#1e1e1e');
+    const [streamSeatPlateTextColor, setStreamSeatPlateTextColor] = useState(settings?.streamSeatPlateTextColor || '#ffd700');
   
   const [cropFile, setCropFile] = useState(null); 
   const [cropTarget, setCropTarget] = useState(null); 
@@ -100,6 +102,14 @@ const Admin = () => {
       socket.off('ADMIN_ERROR');
     };
   }, []);
+  
+  useEffect(() => {
+    if (settings) {
+        setGlobalLang(settings.language || 'en');
+        setStreamSeatPlateBackgroundColor(settings.streamSeatPlateBackgroundColor || '#1e1e1e');
+        setStreamSeatPlateTextColor(settings.streamSeatPlateTextColor || '#ffd700');
+    }
+  }, [settings]);
   
   useEffect(() => {
     if (activeTab === 'settings') fetchPacks();
@@ -712,56 +722,120 @@ const Admin = () => {
           )}
           
           {/* SETTINGS TAB */}
-          {activeTab === 'settings' && ( 
-            <div>
+          {activeTab === 'settings' && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (selectedPack !== 'default') {
+                  await fetch(`/api/assets/activate/${selectedPack}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${uploadToken}` }
+                  });
+                }
+                socket.emit('UPDATE_GLOBAL_SETTINGS', {
+                  language: globalLang,
+                  customAssets: { activePack: selectedPack },
+                  streamSeatPlateBackgroundColor,
+                  streamSeatPlateTextColor,
+                });
+                alert(text.saveSuccess);
+              }}
+            >
               <h1 className="admin-page-title">{text.settingsTitle}</h1>
-              <div className="login-card" style={{ maxWidth: '600px', margin: '0' }}>
-                <form 
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (selectedPack !== 'default') {
-                      await fetch(`/api/assets/activate/${selectedPack}`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${uploadToken}` }
-                      });
-                    }
-                    socket.emit('UPDATE_GLOBAL_SETTINGS', { 
-                      language: globalLang, 
-                      customAssets: { activePack: selectedPack } 
-                    });
-                    alert(text.saveSuccess);
-                  }} 
-                  className="settings-form"
-                >
-                  
-                  {/* LANGUAGE SELECTOR */}
-                  <div className="input-group">
-                    <label style={{ color: 'var(--accent-gold)' }}>{text.tournamentLang}</label>
-                    <select 
-                      className="login-select" 
-                      value={globalLang} 
-                      onChange={e => setGlobalLang(e.target.value)}
-                    >
-                      <option value="en">English</option>
-                      <option value="ru">Русский (Russian)</option>
-                      <option value="ua">Українська (Ukrainian)</option>
-                      <option value="he">עברית (Hebrew - RTL)</option>
-                    </select>
+              <div className="settings-grid">
+
+                {/* --- GENERAL SETTINGS --- */}
+                <div className="admin-panel-section">
+                  <h3>{text.interfaceAndLanguage}</h3>
+
+                  <div className="settings-form">
+                    {/* LANGUAGE SELECTOR */}
+                    <div className="input-group">
+                      <label>{text.tournamentLang}</label>
+                      <select
+                        className="login-select"
+                        value={globalLang}
+                        onChange={e => setGlobalLang(e.target.value)}
+                      >
+                        <option value="en">English</option>
+                        <option value="ru">Русский (Russian)</option>
+                        <option value="ua">Українська (Ukrainian)</option>
+                        <option value="he">עברית (Hebrew - RTL)</option>
+                      </select>
+                    </div>
+
+                    {/* PLATE BACKGROUND COLOR */}
+                    <div className="input-group">
+                      <label>{text.streamPlateBackgroundColor}</label>
+                      <div className="color-input-wrapper">
+                        <input
+                          type="text"
+                          className="login-input"
+                          value={streamSeatPlateBackgroundColor}
+                          onChange={e => setStreamSeatPlateBackgroundColor(e.target.value)}
+                          placeholder="#1e1e1e"
+                          style={{ paddingInlineStart: '1rem' }}
+                        />
+                        <input type="color" value={streamSeatPlateBackgroundColor} onChange={e => setStreamSeatPlateBackgroundColor(e.target.value)} />
+                      </div>
+                    </div>
+
+                    {/* PLATE TEXT COLOR */}
+                    <div className="input-group">
+                      <label>{text.streamPlateTextColor}</label>
+                      <div className="color-input-wrapper">
+                        <input
+                          type="text"
+                          className="login-input"
+                          value={streamSeatPlateTextColor}
+                          onChange={e => setStreamSeatPlateTextColor(e.target.value)}
+                          placeholder="#ffd700"
+                          style={{ paddingInlineStart: '1rem' }}
+                        />
+                        <input type="color" value={streamSeatPlateTextColor} onChange={e => setStreamSeatPlateTextColor(e.target.value)} />
+                      </div>
+                    </div>
+
+                    {/* PREVIEW */}
+                    <div className="input-group">
+                      <label>{text.streamPreview}</label>
+                      <div
+                        style={{
+                          backgroundColor: streamSeatPlateBackgroundColor,
+                          color: streamSeatPlateTextColor,
+                          width: '100%',
+                          margin: 0,
+                          textAlign: 'center',
+                          padding: '15px 0',
+                          borderRadius: '8px',
+                          border: '1px solid #333',
+                          fontSize: '24px',
+                          fontWeight: 'bold',
+                          textTransform: 'uppercase',
+                          letterSpacing: '3px',
+                          boxSizing: 'border-box',
+                          boxShadow: '0 10px 20px rgba(0,0,0,0.4)',
+                        }}
+                      >
+                        {text.seatLabel?.replace('{number}', 1)}
+                      </div>
+                    </div>
                   </div>
+                </div>
 
-                  <div style={{ height: '1px', backgroundColor: '#333' }}></div>
-
+                {/* --- ASSET MANAGER --- */}
+                <div className="admin-panel-section">
                   {/* LIVE PREVIEW BOX */}
                   <div className="settings-section" style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ margin: '0 0 1rem 0', color: 'var(--accent-gold)' }}>{text.texturePreview}</h3>
+                    <h3 style={{ margin: '0 0 1rem 0' }}>{text.texturePreview}</h3>
                     <div className="pack-preview-container" style={{ backgroundImage: `url('${getAssetPath('trayBg')}')` }}>
-                      
+
                       <div className="mini-tray-grid" style={{ marginTop: 0 }}>
                         {['cardBack', 'citizen', 'sheriff', 'mafia', 'don'].map((card, i) => (
-                          <div 
-                            key={i} 
-                            className="mini-card" 
-                            style={{ 
+                          <div
+                            key={i}
+                            className="mini-card"
+                            style={{
                               backgroundImage: `url('${getAssetPath(card)}')`,
                               boxShadow: '0 4px 8px rgba(0,0,0,0.6)',
                               border: card === 'cardBack' ? '1px solid #444' : '1px solid var(--accent-gold)'
@@ -769,129 +843,124 @@ const Admin = () => {
                           />
                         ))}
                       </div>
-                      
+
                     </div>
                   </div>
 
                   {/* PACK MANAGER & COMPILER */}
-                  <div className="admin-panel-section">
-                    
-                    <div className="pack-manager-header">
-                      <h3 style={{ margin: 0, color: 'var(--accent-gold)' }}>{text.packsWindow}</h3>
-                      <label className="pack-import-btn">
-					    {text.importButton}
-                        <input type="file" accept=".mafpack" onChange={handleImportPack} style={{ display: 'none' }} />
-                      </label>
-                    </div>
+                  <div className="pack-manager-header">
+                    <h3 style={{ margin: 0 }}>{text.packsWindow}</h3>
+                    <label className="pack-import-btn">
+                      {text.importButton}
+                      <input type="file" accept=".mafpack" onChange={handleImportPack} style={{ display: 'none' }} />
+                    </label>
+                  </div>
 
-                    <div className="input-group" style={{ marginBottom: '1.5rem' }}>
-                      <label>{text.selectPack}</label>
-                      <select className="login-select" value={selectedPack} onChange={e => setSelectedPack(e.target.value)}>
-                        <optgroup label={ text.defaultPacksTitle }>
-                          {defaultPacks.map(pack => (
-                            <option key={pack.id} value={pack.filename}>{pack.name} (v{pack.version})</option>
+                  <div className="input-group" style={{ marginBottom: '1.5rem' }}>
+                    <label>{text.selectPack}</label>
+                    <select className="login-select" value={selectedPack} onChange={e => setSelectedPack(e.target.value)}>
+                      <optgroup label={text.defaultPacksTitle}>
+                        {defaultPacks.map(pack => (
+                          <option key={pack.id} value={pack.filename}>{pack.name} (v{pack.version})</option>
+                        ))}
+                      </optgroup>
+                      {customPacks.length > 0 && (
+                        <optgroup label={text.customPacksTitle}>
+                          {customPacks.map(pack => (
+                            <option key={pack.id} value={pack.filename}>{pack.name} - {text.authorReference} {pack.author}</option>
                           ))}
                         </optgroup>
-                        {customPacks.length > 0 && (
-                          <optgroup label={ text.customPacksTitle }>
-                            {customPacks.map(pack => (
-                              <option key={pack.id} value={pack.filename}>{pack.name} - {text.authorReference} {pack.author}</option>
-                            ))}
-                          </optgroup>
-                        )}
-                      </select>
-                    </div>
+                      )}
+                    </select>
+                  </div>
 
-                    {/* INSTALLED CUSTOM PACKS LIST */}
-                    {customPacks.length > 0 && (
-                      <div className="pack-list-container">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>{text.exportPacksTitle}</label>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {customPacks.map(pack => (
-                            <div key={pack.id} className="pack-list-item">
-                              <span>{pack.name} <small style={{color: '#888'}}>- {pack.author}</small></span>
-                              <button type="button" onClick={() => handleDownloadPack(pack.filename)} className="pack-export-btn">
-								  {text.exportButton}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* THE CROPPING STUDIO */}
-                    <div className="compile-studio-container" style={{ position: 'relative' }}>
-                      <h4 style={{ margin: '0 0 1rem 0', color: '#888' }}>{text.compileStudioTitle}</h4>
-                      
-                      {/* Asset Upload Grid */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                        {[
-                          { id: 'trayBg', label: text.assetTrayBg },
-                          { id: 'cardBack', label: text.assetCardBack },
-                          { id: 'citizen', label: text.assetCitizen },
-                          { id: 'sheriff', label: text.assetSheriff },
-                          { id: 'mafia', label: text.assetMafia },
-                          { id: 'don', label: text.assetDon }
-                        ].map(asset => (
-                          <div key={asset.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1a1a1a', padding: '0.8rem', borderRadius: '4px', border: tempVaultFiles.includes(asset.id) ? '1px solid #2e7d32' : '1px solid #333' }}>
-                            <span style={{ color: tempVaultFiles.includes(asset.id) ? '#2e7d32' : 'var(--text-white)' }}>
-                              {asset.label} {tempVaultFiles.includes(asset.id) && '✓'}
-                            </span>
-                            <label className="primary-btn" style={{ cursor: 'pointer', width: '110px', textAlign: 'center', padding: '0.3rem 0', fontSize: '0.8rem', backgroundColor: '#333', flexShrink: 0 }}>
-                              {text.uploadBtn}
-                              <input type="file" accept="image/*" onChange={(e) => onSelectCropFile(e, asset.id)} style={{ display: 'none' }} />
-                            </label>
+                  {/* INSTALLED CUSTOM PACKS LIST */}
+                  {customPacks.length > 0 && (
+                    <div className="pack-list-container">
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: '#888' }}>{text.exportPacksTitle}</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {customPacks.map(pack => (
+                          <div key={pack.id} className="pack-list-item">
+                            <span>{pack.name} <small style={{ color: '#888' }}>- {pack.author}</small></span>
+                            <button type="button" onClick={() => handleDownloadPack(pack.filename)} className="pack-export-btn">
+                              {text.exportButton}
+                            </button>
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
 
-                      {/* Final Compile Form */}
-                      <div className="compile-form-row">
-                        <input type="text" className="login-input" placeholder={text.packNamePlaceholder} value={newPackName} onChange={e => setNewPackName(e.target.value)} style={{ flex: 2, padding: '0.6rem', fontSize: '0.9rem' }} />
-                        <input type="text" className="login-input" placeholder={text.authorPlaceholder} value={newPackAuthor} onChange={e => setNewPackAuthor(e.target.value)} style={{ flex: 1, padding: '0.6rem', fontSize: '0.9rem' }} />
-                        <input type="text" className="login-input" placeholder="v1.0.0" value={newPackVersion} onChange={e => setNewPackVersion(e.target.value)} style={{ width: '80px', padding: '0.6rem', fontSize: '0.9rem' }} />
-                      </div>
-                      <button 
-                        type="button" 
-                        onClick={() => { handleCompilePack(); setTempVaultFiles([]); }} 
-                        className="primary-btn" 
-                        style={{ width: '100%', backgroundColor: tempVaultFiles.length >= 6 ? '#1976d2' : '#333', padding: '0.8rem', fontSize: '1rem', transition: 'background-color 0.3s' }} 
-                        disabled={tempVaultFiles.length === 0}
-                      >
-                        {tempVaultFiles.length >= 6 ? text.compileReadyBtn : text.compilePendingBtn}
-                      </button>
+                  {/* THE CROPPING STUDIO */}
+                  <div className="compile-studio-container" style={{ position: 'relative' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#888' }}>{text.compileStudioTitle}</h4>
 
-                      {/* THE CROPPER MODAL */}
-                      {cropFile && (
-                        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex', flexDirection: 'column' }}>
-                          <div style={{ position: 'relative', flex: 1 }}>
-                            <Cropper
-                              image={cropFile}
-                              crop={crop}
-                              zoom={zoom}
-                              aspect={2.5 / 3.5}
-                              onCropChange={setCrop}
-                              onZoomChange={setZoom}
-                              onCropComplete={onCropComplete}
-                            />
-                          </div>
-                          <div style={{ padding: '2rem', backgroundColor: 'var(--surface-black)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', borderTop: '1px solid var(--accent-gold)' }}>
-                            <button type="button" onClick={() => setCropFile(null)} className="primary-btn" style={{ backgroundColor: 'var(--accent-red)' }}>{text.cancelBtn}</button>
-                            <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(e.target.value)} style={{ width: '300px' }} />
-                            <button type="button" onClick={handleSaveCrop} className="primary-btn" style={{ backgroundColor: '#2e7d32' }}>{text.saveCropBtn}</button>
-                          </div>
+                    {/* Asset Upload Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                      {[
+                        { id: 'trayBg', label: text.assetTrayBg },
+                        { id: 'cardBack', label: text.assetCardBack },
+                        { id: 'citizen', label: text.assetCitizen },
+                        { id: 'sheriff', label: text.assetSheriff },
+                        { id: 'mafia', label: text.assetMafia },
+                        { id: 'don', label: text.assetDon }
+                      ].map(asset => (
+                        <div key={asset.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1a1a1a', padding: '0.8rem', borderRadius: '4px', border: tempVaultFiles.includes(asset.id) ? '1px solid #2e7d32' : '1px solid #333' }}>
+                          <span style={{ color: tempVaultFiles.includes(asset.id) ? '#2e7d32' : 'var(--text-white)' }}>
+                            {asset.label} {tempVaultFiles.includes(asset.id) && '✓'}
+                          </span>
+                          <label className="primary-btn" style={{ cursor: 'pointer', width: '110px', textAlign: 'center', padding: '0.3rem 0', fontSize: '0.8rem', backgroundColor: '#333', flexShrink: 0 }}>
+                            {text.uploadBtn}
+                            <input type="file" accept="image/*" onChange={(e) => onSelectCropFile(e, asset.id)} style={{ display: 'none' }} />
+                          </label>
                         </div>
-                      )}
+                      ))}
                     </div>
 
-                  </div>
+                    {/* Final Compile Form */}
+                    <div className="compile-form-row">
+                      <input type="text" className="login-input" placeholder={text.packNamePlaceholder} value={newPackName} onChange={e => setNewPackName(e.target.value)} style={{ flex: 2, padding: '0.6rem', fontSize: '0.9rem' }} />
+                      <input type="text" className="login-input" placeholder={text.authorPlaceholder} value={newPackAuthor} onChange={e => setNewPackAuthor(e.target.value)} style={{ flex: 1, padding: '0.6rem', fontSize: '0.9rem' }} />
+                      <input type="text" className="login-input" placeholder="v1.0.0" value={newPackVersion} onChange={e => setNewPackVersion(e.target.value)} style={{ width: '80px', padding: '0.6rem', fontSize: '0.9rem' }} />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { handleCompilePack(); setTempVaultFiles([]); }}
+                      className="primary-btn"
+                      style={{ width: '100%', backgroundColor: tempVaultFiles.length >= 6 ? '#1976d2' : '#333', padding: '0.8rem', fontSize: '1rem', transition: 'background-color 0.3s' }}
+                      disabled={tempVaultFiles.length === 0}
+                    >
+                      {tempVaultFiles.length >= 6 ? text.compileReadyBtn : text.compilePendingBtn}
+                    </button>
 
-                  <button type="submit" className="primary-btn" style={{ backgroundColor: '#2e7d32' }}>
-                    {text.saveSettings}
-                  </button>
-                </form>
+                    {/* THE CROPPER MODAL */}
+                    {cropFile && (
+                      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ position: 'relative', flex: 1 }}>
+                          <Cropper
+                            image={cropFile}
+                            crop={crop}
+                            zoom={zoom}
+                            aspect={2.5 / 3.5}
+                            onCropChange={setCrop}
+                            onZoomChange={setZoom}
+                            onCropComplete={onCropComplete}
+                          />
+                        </div>
+                        <div style={{ padding: '2rem', backgroundColor: 'var(--surface-black)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem', borderTop: '1px solid var(--accent-gold)' }}>
+                          <button type="button" onClick={() => setCropFile(null)} className="primary-btn" style={{ backgroundColor: 'var(--accent-red)' }}>{text.cancelBtn}</button>
+                          <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={(e) => setZoom(e.target.value)} style={{ width: '300px' }} />
+                          <button type="button" onClick={handleSaveCrop} className="primary-btn" style={{ backgroundColor: '#2e7d32' }}>{text.saveCropBtn}</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+              <button type="submit" className="primary-btn" style={{ backgroundColor: '#2e7d32', marginTop: '2rem' }}>
+                {text.saveSettings}
+              </button>
+            </form>
           )}
 
           {activeTab !== 'overview' && activeTab !== 'streams' && activeTab !== 'security' && activeTab !== 'settings' && renderRoomDetails(activeTab)}

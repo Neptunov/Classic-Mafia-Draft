@@ -206,7 +206,10 @@ export default function StreamView() {
             </div>
           </div>
 
-          <div className="seat-badge">
+          <div className="seat-badge" style={{ 
+            backgroundColor: settings?.streamSeatPlateBackgroundColor || 'var(--surface-black)',
+            color: settings?.streamSeatPlateTextColor || 'var(--accent-gold)'
+          }}>
             {text.seat.replace('{number}', currentReveal.seat)}
           </div>
         </>
