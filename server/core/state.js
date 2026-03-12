@@ -20,7 +20,7 @@ const packageData = JSON.parse(fs.readFileSync(path.join(INTERNAL_ROOT, 'server/
 export const APP_VERSION = packageData.version;
 export const DATA_SCHEMA_VERSION = 2;
 
-// --- 🛡️ NEW VAULT ARCHITECTURE ---
+// --- NEW VAULT ARCHITECTURE ---
 export const STORAGE_DIR = path.join(__dirname, 'data/storage');
 const DATA_SHARDS = 4;
 const PARITY_SHARDS = 2;
@@ -70,15 +70,15 @@ try {
  * Encrypts, shards, and atomically writes the state to disk using WebAssembly.
  */
 export function saveState() {
-  const data = {
-    version: APP_VERSION,
-    schemaVersion: DATA_SCHEMA_VERSION,
-    admin: state.adminCredentials,
-    rooms: state.rooms,
-    sessions: state.sessions,
-    globalDebugMode: state.globalDebugMode,
-	globalSettings: state.globalSettings
-  };
+	const data = {
+		version: APP_VERSION,
+		schemaVersion: DATA_SCHEMA_VERSION,
+		admin: state.adminCredentials,
+		rooms: state.rooms,
+		sessions: state.sessions,
+		globalDebugMode: state.globalDebugMode,
+		globalSettings: state.globalSettings
+	};
   
   const encryptedPayload = encryptStorage(data);
   if (!encryptedPayload || !rsEngine) return;
@@ -155,17 +155,17 @@ export function loadState() {
       const rawData = fs.readFileSync(legacyStore, 'utf8');
       let parsed = rawData.startsWith('{') ? JSON.parse(rawData) : decryptStorage(rawData);
       
-      if (parsed) {
-		parsed = upgradeDataSchema(parsed);
-        state.adminCredentials = parsed.admin;
-        state.rooms = parsed.rooms || {};
-        state.sessions = parsed.sessions || {};
-		if (parsed.globalSettings) state.globalSettings = parsed.globalSettings;
-        saveState(); 
-        fs.unlinkSync(legacyStore); 
-        console.log('[STORAGE] Migration complete. Legacy file destroyed.');
-        return;
-      }
+		if (parsed) {
+			parsed = upgradeDataSchema(parsed);
+			state.adminCredentials = parsed.admin;
+			state.rooms = parsed.rooms || {};
+			state.sessions = parsed.sessions || {};
+			if (parsed.globalSettings) state.globalSettings = parsed.globalSettings;
+			saveState(); 
+			fs.unlinkSync(legacyStore); 
+			console.log('[STORAGE] Migration complete. Legacy file destroyed.');
+			return;
+		}
     } catch (err) {
       console.error('[STORAGE] Legacy migration failed.', err);
     }
@@ -205,37 +205,37 @@ export function loadState() {
     }
   }
 
-  try {
-    if (availableCount < TOTAL_SHARDS) {
-      console.warn(`[STORAGE] WARNING: Missing or corrupted shards detected. Initiating WASM reconstruction...`);
-      
-      const result = rsEngine.reconstruct(shardsArray, DATA_SHARDS, PARITY_SHARDS, shardsAvailable);
-      if (result !== ReedSolomonErasure.RESULT_OK) throw new Error('WASM Reconstruction Failed');
-      
-      console.log(`[STORAGE] Self-healing complete. Data fully recovered.`);
-      saveState(); 
-    }
+	try {
+		if (availableCount < TOTAL_SHARDS) {
+			console.warn(`[STORAGE] WARNING: Missing or corrupted shards detected. Initiating WASM reconstruction...`);
+			
+			const result = rsEngine.reconstruct(shardsArray, DATA_SHARDS, PARITY_SHARDS, shardsAvailable);
+			if (result !== ReedSolomonErasure.RESULT_OK) throw new Error('WASM Reconstruction Failed');
+			
+			console.log(`[STORAGE] Self-healing complete. Data fully recovered.`);
+			saveState(); 
+		}
 
-    const cleanBuffer = Buffer.from(shardsArray.buffer, shardsArray.byteOffset, shardSize * DATA_SHARDS);
-    const encryptedString = cleanBuffer.toString('utf8').replace(/\x00+$/, ''); 
+		const cleanBuffer = Buffer.from(shardsArray.buffer, shardsArray.byteOffset, shardSize * DATA_SHARDS);
+		const encryptedString = cleanBuffer.toString('utf8').replace(/\x00+$/, ''); 
 
-    let parsed = decryptStorage(encryptedString);
-    if (!parsed) return;
-	
-	parsed = upgradeDataSchema(parsed);
+		let parsed = decryptStorage(encryptedString);
+		if (!parsed) return;
+		
+		parsed = upgradeDataSchema(parsed);
 
-    if (parsed.schemaVersion === DATA_SCHEMA_VERSION) {
-      state.adminCredentials = parsed.admin;
-      state.rooms = parsed.rooms || {};
-      state.sessions = parsed.sessions || {};
-      state.globalDebugMode = APP_VERSION.toLowerCase().includes('dev') ? true : (parsed.globalDebugMode || false);
-	  if (parsed.globalSettings) state.globalSettings = parsed.globalSettings;
-      
-      console.log(`[STORAGE] Vault unlocked. Tournament state restored (Schema v${DATA_SCHEMA_VERSION}).`);
-    } else {
-      console.warn(`[WARNING] Data schema mismatch. Starting fresh.`);
-    }
-  } catch (err) {
-    console.error(`[ERROR] Vault reconstruction failed.`, err);
-  }
+		if (parsed.schemaVersion === DATA_SCHEMA_VERSION) {
+			state.adminCredentials = parsed.admin;
+			state.rooms = parsed.rooms || {};
+			state.sessions = parsed.sessions || {};
+			state.globalDebugMode = APP_VERSION.toLowerCase().includes('dev') ? true : (parsed.globalDebugMode || false);
+			if (parsed.globalSettings) state.globalSettings = parsed.globalSettings;
+			
+			console.log(`[STORAGE] Vault unlocked. Tournament state restored (Schema v${DATA_SCHEMA_VERSION}).`);
+		} else {
+			console.warn(`[WARNING] Data schema mismatch. Starting fresh.`);
+		}
+	} catch (err) {
+		console.error(`[ERROR] Vault reconstruction failed.`, err);
+	}
 }

@@ -105,121 +105,121 @@ if (activeFiles.length === 0) {
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 function startServer() {
-  server.listen(PORT, '0.0.0.0', async () => {
-	const isProd = process.argv.includes('--prod');
+	server.listen(PORT, '0.0.0.0', async () => {
+		const isProd = process.argv.includes('--prod');
 
-	if (isProd) {
-	  console.log('\x1Bc');
-	  console.log('\x1b[36m%s\x1b[0m', `
-      =======================================================
-           CLASSIC MAFIA DRAFT - TOURNAMENT SERVER 
-      =======================================================
-	  `);
-	  console.log(`      Status:      ONLINE (v${APP_VERSION})`);
-	  console.log(`      Admin PC:    http://localhost:${PORT}`);
-	  console.log(`      LAN Access:  http://${LOCAL_IP}:${PORT}`);
-	  console.log(`\n      [ INFO ] Type "status", "restart", "shutdown", or "reset"`);
-	  console.log(`               and press Enter to use QoL tools.`);
-	  console.log('\x1b[36m%s\x1b[0m', `\n      =======================================================\n`);
+		if (isProd) {
+			console.log('\x1Bc');
+			console.log('\x1b[36m%s\x1b[0m', `
+=======================================================
+CLASSIC MAFIA DRAFT - TOURNAMENT SERVER 
+=======================================================
+			`);
+			console.log(`      Status:      ONLINE (v${APP_VERSION})`);
+			console.log(`      Admin PC:    http://localhost:${PORT}`);
+			console.log(`      LAN Access:  http://${LOCAL_IP}:${PORT}`);
+			console.log(`\n      [ INFO ] Type "status", "restart", "shutdown", or "reset"`);
+			console.log(`               and press Enter to use QoL tools.`);
+			console.log('\x1b[36m%s\x1b[0m', `\n      =======================================================\n`);
 
-	  notifier.notify({
-	    title: 'Classic Mafia Draft',
-	    message: 'Server is live! Opening Admin Dashboard...',
-	    sound: true,
-	    wait: false
-	  });
-
-	  try {
-	    await open(`http://localhost:${PORT}/admin`);
-	  } catch (err) {
-	    console.log('      [WARN] Could not auto-open browser.');
-	  }
-	  } else {
-	    console.log(`\n=== 🃏 MAFIA TOURNAMENT SERVER LIVE (v${APP_VERSION} - DEV) ===`);
-	    console.log(`1. Admin PC:   http://localhost:${PORT}`);
-		console.log(`2. LAN Access: http://${LOCAL_IP}:${PORT}`);
-		console.log(`=======================================`);
-		console.log(`Type "status", "restart", "shutdown", or "reset" for QoL tools. Type "help" for more info.`);
-		console.log(`\n`);
-	  }
-
-	  rl.on('line', (input) => {
-		const command = input.trim().toLowerCase();
-
-		switch (command) {
-		  case 'help':
-			console.log(`\nAvailable Commands:`);
-			console.log(`- status   : Displays current server status and resource usage.`);
-			console.log(`- restart  : Saves state and restarts the server (production only).`);
-			console.log(`- shutdown : Saves state and shuts down the server.`);
-			console.log(`- reset    : FACTORY RESET - Wipes ALL data and shards (requires password).`);
-			console.log(`\n`);
-			 break;
-
-		  case 'status':
-			console.log(`\n=== 📊 SERVER STATUS ===`);
-			console.log(`Version:       v${APP_VERSION}`);
-			console.log(`Uptime:        ${Math.floor(process.uptime() / 60)} minutes`);
-			console.log(`Active Tables: ${Object.keys(state.rooms || {}).length}`);
-			console.log(`Connections:   ${Object.keys(state.clients || {}).length}`);
-			console.log(`Memory Usage:  ${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB`);
-			console.log(`========================\n`);
-			break;
-
-		  case 'shutdown':
-			console.log('\n[SYSTEM] Saving tournament state and shutting down gracefully...');
-			saveState();
-			process.exit(0);
-			break;
-
-		  case 'restart':
-			console.log('\n[SYSTEM] Saving tournament state and triggering restart...');
-			saveState();
-
-			const isProd = process.argv.includes('--prod');
-
-			if (isProd) {
-			  const args = process.argv.slice(1);
-			  const child = spawn('cmd.exe', ['/c', 'start', '""', process.execPath, ...args], {
-				detached: true,
-				stdio: 'ignore'
-			  });
-			  
-			  child.unref();
-			  
-			  process.exit(0);
-			} else {
-			  process.exit(1); 
-			}
-			break;
-
-		  case 'reset':
-			rl.question('WARNING: Enter Admin Password to confirm factory reset (Text will be visible): ', (pass) => {
-			  if (verifyPasswordPlaintext(pass)) {
-				
-				if (fs.existsSync(STORAGE_DIR)) {
-				  fs.rmSync(STORAGE_DIR, { recursive: true, force: true });
-				}
-				
-				const legacyStorePath = path.join(APP_ROOT, 'server/store.json');
-				if (fs.existsSync(legacyStorePath)) {
-				  fs.unlinkSync(legacyStorePath);
-				}
-
-				console.log(`\n[SUCCESS] Server wiped. All shards and data destroyed. Please restart the application.\n`);
-				process.exit(0);
-			  } else {
-				console.log(`[ERROR] Incorrect password. Reset aborted.\n`);
-			  }
+			notifier.notify({
+				title: 'Classic Mafia Draft',
+				message: 'Server is live! Opening Admin Dashboard...',
+				sound: true,
+				wait: false
 			});
-			break;
-			
-		  default:
-			if (command) console.log(`[ERROR] Unknown command: "${command}"`);
-			break;
+
+			try {
+				await open(`http://localhost:${PORT}/admin`);
+			} catch (err) {
+				console.log('      [WARN] Could not auto-open browser.');
+			}
+		} else {
+			console.log(`\n=== MAFIA TOURNAMENT SERVER LIVE (v${APP_VERSION} - DEV) ===`);
+			console.log(`1. Admin PC:   http://localhost:${PORT}`);
+			console.log(`2. LAN Access: http://${LOCAL_IP}:${PORT}`);
+			console.log(`=======================================`);
+			console.log(`Type "status", "restart", "shutdown", or "reset" for QoL tools. Type "help" for more info.`);
+			console.log(`\n`);
 		}
-	  });
-});
+
+		rl.on('line', (input) => {
+			const command = input.trim().toLowerCase();
+
+			switch (command) {
+				case 'help':
+					console.log(`\nAvailable Commands:`);
+					console.log(`- status   : Displays current server status and resource usage.`);
+					console.log(`- restart  : Saves state and restarts the server (production only).`);
+					console.log(`- shutdown : Saves state and shuts down the server.`);
+					console.log(`- reset    : FACTORY RESET - Wipes ALL data and shards (requires password).`);
+					console.log(`\n`);
+					break;
+
+				case 'status':
+					console.log(`\n=== 📊 SERVER STATUS ===`);
+					console.log(`Version:       v${APP_VERSION}`);
+					console.log(`Uptime:        ${Math.floor(process.uptime() / 60)} minutes`);
+					console.log(`Active Tables: ${Object.keys(state.rooms || {}).length}`);
+					console.log(`Connections:   ${Object.keys(state.clients || {}).length}`);
+					console.log(`Memory Usage:  ${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB`);
+					console.log(`========================\n`);
+					break;
+
+				case 'shutdown':
+					console.log('\n[SYSTEM] Saving tournament state and shutting down gracefully...');
+					saveState();
+					process.exit(0);
+					break;
+
+				case 'restart':
+					console.log('\n[SYSTEM] Saving tournament state and triggering restart...');
+					saveState();
+
+					const isProd = process.argv.includes('--prod');
+
+					if (isProd) {
+						const args = process.argv.slice(1);
+						const child = spawn('cmd.exe', ['/c', 'start', '""', process.execPath, ...args], {
+							detached: true,
+							stdio: 'ignore'
+						});
+						
+						child.unref();
+						
+						process.exit(0);
+					} else {
+						process.exit(1); 
+					}
+					break;
+
+				case 'reset':
+					rl.question('WARNING: Enter Admin Password to confirm factory reset (Text will be visible): ', (pass) => {
+						if (verifyPasswordPlaintext(pass)) {
+							
+							if (fs.existsSync(STORAGE_DIR)) {
+								fs.rmSync(STORAGE_DIR, { recursive: true, force: true });
+							}
+							
+							const legacyStorePath = path.join(APP_ROOT, 'server/store.json');
+							if (fs.existsSync(legacyStorePath)) {
+								fs.unlinkSync(legacyStorePath);
+							}
+
+							console.log(`\n[SUCCESS] Server wiped. All shards and data destroyed. Please restart the application.\n`);
+							process.exit(0);
+						} else {
+							console.log(`[ERROR] Incorrect password. Reset aborted.\n`);
+						}
+					});
+					break;
+					
+				default:
+					if (command) console.log(`[ERROR] Unknown command: "${command}"`);
+					break;
+			}
+		});
+	});
 }
 
 startServer();
