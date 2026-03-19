@@ -179,6 +179,11 @@ export const he = {
     errUploadFailed: "טעות העלאה: ",
     errNetwork: "טעות הרשת במהלך העלאה.",
     saveSettings: "יישום הגדרות גלובליות",
-    saveSuccess: "הגדרות יישמו בהצלחה."
+    saveSuccess: "הגדרות יישמו בהצלחה.",
+    streamPlateBackgroundColor: 'רקע לוחית השחקן',
+    streamPlateTextColor: 'צבע טקסט לוחית השחקן',
+    streamPreview: 'תצוגה מקדימה',
+    playerLabel: "שחקן {number}",
+    interfaceAndLanguage: 'ממשק ושפה'
   }
 };

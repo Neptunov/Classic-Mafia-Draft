@@ -183,6 +183,7 @@ export const en = {
     streamPlateBackgroundColor: 'Player Plate Background Color',
     streamPlateTextColor: 'Player Plate Text Color',
     streamPreview: 'Preview',
+    playerLabel: "Player {number}",
     interfaceAndLanguage: 'Interface & Language'
   }
 };

@@ -183,6 +183,7 @@ export const ua = {
     streamPlateBackgroundColor: 'Колір фону таблички Гравця',
     streamPlateTextColor: 'Колір тексту таблички Гравця',
     streamPreview: 'Попередній перегляд',
+    playerLabel: "Гравець {number}",
     interfaceAndLanguage: 'Інтерфейс і Мова'
   }
 };

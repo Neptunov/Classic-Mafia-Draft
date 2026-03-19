@@ -817,7 +817,7 @@ const Admin = () => {
                           boxShadow: '0 10px 20px rgba(0,0,0,0.4)',
                         }}
                       >
-                        {text.seatLabel?.replace('{number}', 1)}
+                        {text.playerLabel?.replace('{number}', 1)}
                       </div>
                     </div>
                   </div>

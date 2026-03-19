@@ -182,6 +182,7 @@ export const ru = {
     streamPlateBackgroundColor: 'Цвет фона плашки игрока',
     streamPlateTextColor: 'Цвет текста плашки игрока',
     streamPreview: 'Предпросмотр',
+    playerLabel: "Игрок {number}",
     interfaceAndLanguage: 'Интерфейс и язык'
   }
 };
