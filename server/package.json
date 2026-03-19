@@ -1,6 +1,6 @@
 {
   "name": "mafia-draft-backend",
-  "version": "0.5.5",
+  "version": "0.5.5a",
   "type": "module",
   "main": "index.js",
   "scripts": {
