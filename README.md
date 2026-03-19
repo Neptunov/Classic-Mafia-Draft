@@ -34,6 +34,11 @@ A professional-grade, multi-table draft management system for Classic Mafia.
 
 ## 📝 Changelog
 
+**v0.5.5: Localisation Update & Default Pack Addition**
+- Reviewed localisation files for inaccurate terminology to improve clarity and prevent viewer confusion.
+- Updated Ukrainian localisation (by Ezzyslav)
+- Added default card pack for Mafgame
+
 **v0.5.4: Admin Settings UI/UX Overhaul & Stream Customization**
 - Restructured the Admin "Settings" tab into a responsive, two-column layout, separating "Interface & Language" controls from the "Asset Manager" for a cleaner, more organized experience on wider screens.
 - Introduced interactive color pickers and a live preview for the Stream overlay's seat plate, allowing for easy customization of both background and text colors.
