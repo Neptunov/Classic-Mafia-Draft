@@ -154,7 +154,7 @@ const Player = () => {
       {/* SINGLE MODE: SEAT INDICATOR */}
       {isSingleMode && (
         <div style={{ position: 'absolute', bottom: '2rem', color: 'var(--accent-gold)', fontSize: '1.5rem', fontWeight: 'bold', letterSpacing: '3px', textTransform: 'uppercase', textShadow: '0 5px 15px rgba(0,0,0,0.8)' }}>
-          {text.seat.replace('{number}', clientSeat)}
+          {text.player.replace('{number}', clientSeat)}
         </div>
       )}
 

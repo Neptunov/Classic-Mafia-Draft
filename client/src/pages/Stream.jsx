@@ -210,7 +210,7 @@ export default function StreamView() {
             backgroundColor: settings?.streamSeatPlateBackgroundColor || 'var(--surface-black)',
             color: settings?.streamSeatPlateTextColor || 'var(--accent-gold)'
           }}>
-            {text.seat.replace('{number}', currentReveal.seat)}
+            {text.player.replace('{number}', currentReveal.seat)}
           </div>
         </>
       )}

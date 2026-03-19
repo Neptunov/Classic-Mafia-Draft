@@ -1,7 +1,6 @@
 /**
  * @file src/locales/en.js
  * @description English localization dictionary. 
- * Centralizes static text for the UI to support future internationalization (i18n).
  */
  
 export const en = {
@@ -140,7 +139,7 @@ export const en = {
     roleSheriff: "Sheriff",
     roleMafia: "Mafia",
     roleDon: "Don",
-    playerConfig: "Player Configuration",
+    seatConfig: "Seating Configuration",
     unassigned: "Unassigned",
     assignSeat: "Assign Seat...",
     seatLabel: "Seat {number}",

@@ -1,7 +1,6 @@
 /**
  * @file src/locales/he.js
  * @description Hebrew localization dictionary. 
- * Centralizes static text for the UI to support future internationalization (i18n).
  */
  
 export const he = {
@@ -46,12 +45,12 @@ export const he = {
     forcePickConfirm: "בטוח רוצה להכריח בחירה אקראית לשחקן הזה?",
     closeCard: "סגור קלף הנוכחי",
     resetDraft: "איפוס חלוקה",
-    seat: "שחקן {number}",
+    player: "שחקן {number}",
     roleCitizen: "עיירה",
     roleSheriff: "שריף",
     roleMafia: "מאפיה",
     roleDon: "דון",
-    emptySeat: "ממתין...",
+    emptyPlayer: "ממתין...",
     connected: "מקוון",
     disconnected: "לא מקוון",
     debugActive: "מצב דיבג פעיל"
@@ -60,7 +59,7 @@ export const he = {
     title: "מקור שידור מקוון",
     subtitle: "ממתין לשיבוץ שולחן על ידי מנהלן...",
     ipLabel: "כתובת IP של המקור",
-    seat: "שחקן {number}"
+    player: "שחקן {number}"
   },
   setup: {
     title: "אתחול הטורניר",
@@ -83,7 +82,7 @@ export const he = {
     memorizedBtn: "זכרתי",
     warningDisconnect: "השרת לא מקוון",
     warningDebug: "מצב דיבג פעיל",
-    seat: "שחקן {number}"
+    player: "שחקן {number}"
   },
   admin: {
     title: "זיר מנהלן",

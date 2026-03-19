@@ -45,12 +45,12 @@ export const ru = {
     forcePickConfirm: "Вы уверены, что хотите принудительно выбрать карту для текущего игрока?",
     closeCard: "Закрыть активную карту",
     resetDraft: "Сбросить раздачу",
-    seat: "Игрок {number}",
+    player: "Игрок {number}",
     roleCitizen: "Мирный",
     roleSheriff: "Шериф",
     roleMafia: "Мафия",
     roleDon: "Дон",
-    emptySeat: "Ожидание...",
+    emptyPlayer: "Ожидание...",
     connected: "Подключено",
     disconnected: "Нет связи",
     debugActive: "Включён режим отладки"
@@ -59,7 +59,7 @@ export const ru = {
     title: "Трансляция подключена",
     subtitle: "Ожидание назначения стола...",
     ipLabel: "IP-адрес источника",
-    seat: "Игрок {number}"
+    player: "Игрок {number}"
   },
   setup: {
     title: "Инициализация турнира",
@@ -82,7 +82,7 @@ export const ru = {
     memorizedBtn: "Я ЗАПОМНИЛ",
     warningDisconnect: "НЕТ СВЯЗИ С СЕРВЕРОМ",
     warningDebug: "ВКЛЮЧЁН РЕЖИМ ОТЛАДКИ",
-    seat: "Игрок {number}"
+    player: "Игрок {number}"
   },
   admin: {
     title: "Панель администратора",

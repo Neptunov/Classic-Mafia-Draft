@@ -1,7 +1,6 @@
 /**
  * @file src/locales/ua.js
  * @description Ukrainian localization dictionary. 
- * Centralizes static text for the UI to support future internationalization (i18n).
  */
  
 export const ua = {
@@ -46,12 +45,12 @@ export const ua = {
     forcePickConfirm: "Ви впевнені, що хочете примусово видати рандомну роль для даного місця?",
     closeCard: "Закрити Карту",
     resetDraft: "Скинути Роздачу",
-    seat: "Місце {number}",
-  roleCitizen: "Мирний",
-  roleSheriff: "Шериф",
-  roleMafia: "Мафія",
-  roleDon: "Дон",
-    emptySeat: "Очікування...",
+    player: "Гравець {number}",
+    roleCitizen: "Мирний",
+    roleSheriff: "Шериф",
+    roleMafia: "Мафія",
+    roleDon: "Дон",
+    emptyPlayer: "Очікування...",
     connected: "Під’єднано",
     disconnected: "Відсутній зв’язок",
     debugActive: "Режим Debug Активний"
@@ -60,7 +59,7 @@ export const ua = {
     title: "Трансляцію Під‘єднано",
     subtitle: "Очікуємо Адміністратора для призначення столу...",
     ipLabel: "IP Адреса джерела",
-    seat: "Гравець {number}"
+    player: "Гравець {number}"
   },
   setup: {
     title: "Ініціалізація Турніру",
@@ -83,7 +82,7 @@ export const ua = {
     memorizedBtn: "Я ЗАПАМ’ЯТАВ",
     warningDisconnect: "ВТРАЧЕНИЙ ЗВ’ЯЗОК",
     warningDebug: "РЕЖИМ DEBUG АКТИВНИЙ",
-    seat: "Гравець {number}"
+    player: "Гравець {number}"
   },
   admin: {
     title: "Адміністративна Консоль",
